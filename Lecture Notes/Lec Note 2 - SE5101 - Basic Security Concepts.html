@@ -185,7 +185,7 @@ svg{display:block;}
 .chain-detail b{color:var(--text);}
 
 /* risk matrix */
-.risk-wrap{display:grid; grid-template-columns:340px 1fr; gap:28px; margin-top:40px; align-items:start;}
+.risk-wrap{margin-top:40px; align-items:start;}
 @media(max-width:760px){.risk-wrap{grid-template-columns:1fr;}}
 .risk-matrix-box{border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:20px;}
 .matrix-title{font-family:var(--mono); font-size:11px; color:var(--muted2); text-transform:uppercase; margin-bottom:14px;}
@@ -211,11 +211,11 @@ svg{display:block;}
 /* ---------- CIA triangle interactive ---------- */
 .triad-shell{display:grid; grid-template-columns:340px 1fr; gap:28px; margin-top:36px; align-items:start;}
 @media(max-width:760px){.triad-shell{grid-template-columns:1fr;}}
-.triad-svg-box{border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:18px;}
+.triad-svg-box{ border-radius:10px; background:var(--panel); padding:18px;}
 .vertex{cursor:pointer;}
 .vertex circle{transition:all .25s ease;}
 .vertex text{font-family:var(--mono); font-weight:700; font-size:13px; cursor:pointer;}
-.vertex.active circle.outer{filter:drop-shadow(0 0 10px currentColor);}
+.vertex.active circle.outer{filter:drop-shadow(0 0 0px currentColor);}
 .tri-edge{stroke:var(--line); stroke-width:1.5; fill:none;}
 
 .triad-detail{border:1px solid var(--line); border-radius:10px; padding:24px; background:var(--panel); min-height:420px;}
@@ -373,7 +373,7 @@ footer{padding:40px 0 70px; text-align:center; color:var(--muted2); font-family:
 
 <div class="topbar">
   <div class="topbar-inner">
-    <span class="brand"><b>SE 5101</b> // Computer &amp; Network Security</span>
+    <span class="brand"><b>SE 5101</b> Computer &amp; Network Security</span>
     <div class="nav">
       <a href="#terms">Terminology</a>
       <a href="#cia">CIA</a>
@@ -481,17 +481,6 @@ footer{padding:40px 0 70px; text-align:center; color:var(--muted2); font-family:
     </div>
 
     <div class="risk-wrap">
-      <div class="risk-matrix-box">
-        <div class="matrix-title">fig 2.2 — risk matrix (likelihood × impact)</div>
-        <div class="matrix-layout">
-          <div class="matrix-y-label">LIKELIHOOD →</div>
-          <div class="matrix-cells-area">
-            <div class="matrix-grid" id="matrixGrid"></div>
-          </div>
-          <div></div>
-          <div class="matrix-x-label">IMPACT →</div>
-        </div>
-      </div>
       <div class="risk-detail" id="riskDetail">
         <div class="kicker" style="font-family:var(--mono); font-size:11px; color:var(--muted2); text-transform:uppercase;">RISK MODEL</div>
         <h3 style="font-size:20px; margin-top:6px;">Risk = Likelihood × Impact</h3>
@@ -515,18 +504,17 @@ footer{padding:40px 0 70px; text-align:center; color:var(--muted2); font-family:
         <svg viewBox="0 0 300 280" width="100%" height="280">
           <path class="tri-edge" d="M150,30 L270,230 L30,230 Z"/>
           <g class="vertex active" data-key="confid" transform="translate(150,30)">
-            <circle class="outer" r="30" fill="var(--confid-dim)" stroke="var(--confid)" stroke-width="2" style="color:var(--confid)"/>
+            <circle class="outer" r="24" fill="var(--confid-dim)" stroke="var(--confid)" stroke-width="1" style="color:var(--confid)"/>
             <text y="5" text-anchor="middle" fill="var(--confid)">C</text>
           </g>
           <g class="vertex" data-key="integ" transform="translate(270,230)">
-            <circle class="outer" r="30" fill="var(--panel2)" stroke="var(--line)" stroke-width="2" style="color:var(--integ)"/>
+            <circle class="outer" r="24" fill="var(--panel2)" stroke="var(--line)" stroke-width="1" style="color:var(--integ)"/>
             <text y="5" text-anchor="middle" fill="var(--muted)">I</text>
           </g>
           <g class="vertex" data-key="avail" transform="translate(30,230)">
-            <circle class="outer" r="30" fill="var(--panel2)" stroke="var(--line)" stroke-width="2" style="color:var(--avail)"/>
+            <circle class="outer" r="24" fill="var(--panel2)" stroke="var(--line)" stroke-width="1" style="color:var(--avail)"/>
             <text y="5" text-anchor="middle" fill="var(--muted)">A</text>
           </g>
-          <text x="150" y="130" text-anchor="middle" class="node-sub" font-size="10">CIA</text>
         </svg>
         <p class="key-hint" style="text-align:center;">Click C / I / A above</p>
       </div>
@@ -634,7 +622,7 @@ footer{padding:40px 0 70px; text-align:center; color:var(--muted2); font-family:
     Trudy can pass step 2 (e.g. with a stolen password) and still fail step 3 if she lacks the right role.
     </p>
 
-    <h3 style="font-size:18px; margin-top:56px;">Authentication factors — click to build MFA</h3>
+    <h3 style="font-size:18px; margin-top:56px;">Authentication factors</h3>
     <p class="lede" style="margin-top:8px;">Authentication is only as strong as the factors combined. Toggle the three classic factor types and watch the strength meter.</p>
     <div class="factor-row" id="factorRow">
       <div class="factor-card" data-factor="know">
@@ -744,10 +732,6 @@ footer{padding:40px 0 70px; text-align:center; color:var(--muted2); font-family:
   </div>
 </section>
 
-<footer>
-  SE 5101 · Computer and Network Security — Module 01 · Basic Security Concepts<br>
-  Built as an interactive lecture note. Reduced-motion friendly.
-</footer>
 
 <script>
 /* ---------------- progress bar ---------------- */
@@ -818,50 +802,6 @@ chain.forEach((c,i)=>{
   }
 });
 document.getElementById('chainDetail').innerHTML = chain[0].detail;
-
-/* risk matrix: 5x5, x=impact(1-5), y=likelihood(5 at top down to 1) */
-const matrixGrid = document.getElementById('matrixGrid');
-const riskDetail = document.getElementById('riskDetail');
-function riskColor(score){
-  if(score<=4) return 'var(--risk-low)';
-  if(score<=9) return 'var(--risk-med)';
-  if(score<=16) return 'var(--risk-high)';
-  return 'var(--risk-crit)';
-}
-function riskLabel(score){
-  if(score<=4) return 'Low';
-  if(score<=9) return 'Medium';
-  if(score<=16) return 'High';
-  return 'Critical';
-}
-const riskExamples = {
-  low:'Example: an internal wiki typo visible only to staff. Unlikely to be targeted, and low consequence if it is.',
-  medium:'Example: a marketing website with an outdated CMS plugin — moderately likely to be scanned, moderate reputational impact if defaced.',
-  high:'Example: an employee VPN using password-only auth (no MFA) — attractive and fairly likely to be targeted, with serious access if compromised.',
-  critical:'Example: Bob\'s public-facing database server, unpatched, holding all customer records — highly likely to be found and exploited, catastrophic if it is.'
-};
-for(let likeli=5; likeli>=1; likeli--){
-  for(let impact=1; impact<=5; impact++){
-    const score = likeli*impact;
-    const cell = document.createElement('div');
-    cell.className='matrix-cell';
-    cell.style.background = riskColor(score);
-    cell.dataset.likeli=likeli; cell.dataset.impact=impact; cell.dataset.score=score;
-    cell.addEventListener('click', ()=>{
-      document.querySelectorAll('.matrix-cell').forEach(c=>c.classList.remove('selected'));
-      cell.classList.add('selected');
-      const lbl = riskLabel(score);
-      const key = lbl.toLowerCase();
-      riskDetail.innerHTML = `
-        <span class="risk-badge" style="background:${riskColor(score)}22; color:${riskColor(score)}; border:1px solid ${riskColor(score)}">${lbl.toUpperCase()} RISK — score ${score}</span>
-        <h3 style="font-size:20px; margin-top:14px;">Likelihood ${likeli} × Impact ${impact} = ${score}</h3>
-        <div class="risk-formula">Risk = <span class="rf-hi">${likeli}</span> × <span class="rf-hi">${impact}</span> = <span class="rf-hi">${score}</span></div>
-        <p style="margin-top:14px; font-size:13.5px; color:var(--muted);">${riskExamples[key]}</p>
-        <p style="margin-top:10px; font-size:13px; color:var(--muted2); font-family:var(--mono);">Move left → fewer consequences (encryption, backups). Move down → less likely (patching, firewalls, MFA).</p>`;
-    });
-    matrixGrid.appendChild(cell);
-  }
-}
 
 /* ================= CIA TRIAD ================= */
 const triadData = {
@@ -1185,59 +1125,174 @@ renderModel('dac');
 
 /* ================= IAM RING ================= */
 const iamStages = [
-  {key:'identify', label:'Identify', title:'1 · Identification', angle:-90,
-   text:'HR/IT creates a unique digital identity for Alice — one account, never shared, tied to her as a person.'},
-  {key:'provision', label:'Provision', title:'2 · Provisioning', angle:-18,
-   text:'Access is granted based on her role (e.g. "Finance Analyst") — usually automatically, following least-privilege.'},
-  {key:'authn', label:'Authenticate', title:'3 · Authentication', angle:54,
-   text:'Every session, Alice proves her identity again — password + MFA — before anything else happens.'},
-  {key:'authz', label:'Authorize', title:'4 · Authorization', angle:126,
-   text:'Each request Alice makes is checked against her permissions (RBAC/ABAC policies) in real time.'},
-  {key:'monitor', label:'Monitor', title:'5 · Monitor & Audit', angle:198,
-   text:'All access is logged for accountability; anomalies (e.g. Trudy using Alice\'s stolen token from a new country) trigger alerts.'},
-  {key:'deprov', label:'Deprovision', title:'6 · Deprovisioning', angle:270,
-   text:'When Alice leaves the company, every credential and permission is revoked immediately — closing the loop.'}
+  {
+    key: 'identify',
+    label: 'Identify',
+    title: '1 · Identification',
+    angle: -90,
+    text: 'HR/IT creates a unique digital identity for Alice — one account, never shared, tied to her as a person.'
+  },
+  {
+    key: 'provision',
+    label: 'Provision',
+    title: '2 · Provisioning',
+    angle: -30,
+    text: 'Access is granted based on her role (e.g. "Finance Analyst") — usually automatically, following least-privilege.'
+  },
+  {
+    key: 'authn',
+    label: 'Authenticate',
+    title: '3 · Authentication',
+    angle: 30,
+    text: 'Every session, Alice proves her identity again — password + MFA — before anything else happens.'
+  },
+  {
+    key: 'authz',
+    label: 'Authorize',
+    title: '4 · Authorization',
+    angle: 90,
+    text: 'Each request Alice makes is checked against her permissions (RBAC/ABAC policies) in real time.'
+  },
+  {
+    key: 'monitor',
+    label: 'Monitor',
+    title: '5 · Monitor & Audit',
+    angle: 150,
+    text: 'All access is logged for accountability; anomalies (e.g. Trudy using Alice\'s stolen token from a new country) trigger alerts.'
+  },
+  {
+    key: 'deprov',
+    label: 'Deprovision',
+    title: '6 · Deprovisioning',
+    angle: 210,
+    text: 'When Alice leaves the company, every credential and permission is revoked immediately — closing the loop.'
+  }
 ];
+
 const iamSvg = document.getElementById('iamSvg');
-iamSvg.innerHTML = '<circle cx="130" cy="130" r="100" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="3 5"/>';
-const cx=130, cy=130, r=100;
-let hexPath = 'M ';
-iamStages.forEach((s,i)=>{
-  const rad = s.angle*Math.PI/180;
-  const x = cx+r*Math.cos(rad); const y = cy+r*Math.sin(rad);
-  hexPath += `${x},${y} ${i<iamStages.length-1?'L':'Z'} `;
+
+const cx = 130;
+const cy = 130;
+const r = 100;
+
+/* Outer guide circle */
+iamSvg.innerHTML = `
+  <circle
+    cx="${cx}"
+    cy="${cy}"
+    r="${r}"
+    fill="none"
+    stroke="var(--line)"
+    stroke-width="1.5"
+    stroke-dasharray="3 6"
+  />
+`;
+
+/* Create 6-sided graph */
+let points = [];
+
+iamStages.forEach((s) => {
+  const rad = s.angle * Math.PI / 180;
+
+  const x = cx + r * Math.cos(rad);
+  const y = cy + r * Math.sin(rad);
+
+  points.push(`${x},${y}`);
 });
-const hexEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+
+/* Close the polygon with Z */
+const hexPath = `M ${points.join(' L ')} Z`;
+
+const hexEl = document.createElementNS(
+  'http://www.w3.org/2000/svg',
+  'path'
+);
+
 hexEl.setAttribute('d', hexPath);
-hexEl.setAttribute('fill','none');
-hexEl.setAttribute('stroke','var(--line)');
-hexEl.setAttribute('stroke-width','1');
+hexEl.setAttribute('fill', 'none');
+hexEl.setAttribute('stroke', 'var(--line)');
+hexEl.setAttribute('stroke-width', '1');
+
 iamSvg.appendChild(hexEl);
-iamStages.forEach((s)=>{
-  const rad = s.angle * Math.PI/180;
-  const x = cx + r*Math.cos(rad);
-  const y = cy + r*Math.sin(rad);
-  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-  g.setAttribute('class','iam-node');
+
+
+/* Create the 6 nodes */
+iamStages.forEach((s) => {
+
+  const rad = s.angle * Math.PI / 180;
+
+  const x = cx + r * Math.cos(rad);
+  const y = cy + r * Math.sin(rad);
+
+  const g = document.createElementNS(
+    'http://www.w3.org/2000/svg',
+    'g'
+  );
+
+  g.setAttribute('class', 'iam-node');
   g.setAttribute('data-key', s.key);
-  g.setAttribute('transform', `translate(${x},${y})`);
-  g.innerHTML = `<circle r="16" fill="var(--panel2)" stroke="var(--line)" stroke-width="1.5"/>
-                 <text y="4" text-anchor="middle">${s.label.slice(0,2).toUpperCase()}</text>`;
-  g.addEventListener('click', ()=>selectIam(s.key));
+  g.setAttribute(
+    'transform',
+    `translate(${x},${y})`
+  );
+
+  g.innerHTML = `
+    <circle
+      r="16"
+      fill="var(--panel2)"
+      stroke="var(--line)"
+      stroke-width="1.5"
+    />
+
+    <text
+      y="4"
+      text-anchor="middle"
+    >
+      ${s.label.slice(0, 2).toUpperCase()}
+    </text>
+  `;
+
+  g.addEventListener('click', () => {
+    selectIam(s.key);
+  });
+
   iamSvg.appendChild(g);
 });
-function selectIam(key){
-  const s = iamStages.find(x=>x.key===key);
-  document.querySelectorAll('.iam-node').forEach(n=>{
-    n.classList.toggle('active', n.dataset.key===key);
-    n.querySelector('circle').setAttribute('stroke', n.dataset.key===key ? 'var(--confid)' : 'var(--line)');
-    n.querySelector('circle').setAttribute('fill', n.dataset.key===key ? 'var(--confid-dim)' : 'var(--panel2)');
+
+
+/* Select a stage */
+function selectIam(key) {
+
+  const s = iamStages.find(x => x.key === key);
+
+  if (!s) return;
+
+  document.querySelectorAll('.iam-node').forEach(n => {
+
+    const active = n.dataset.key === key;
+
+    n.classList.toggle('active', active);
+
+    n.querySelector('circle').setAttribute(
+      'stroke',
+      active ? 'var(--confid)' : 'var(--line)'
+    );
+
+    n.querySelector('circle').setAttribute(
+      'fill',
+      active ? 'var(--confid-dim)' : 'var(--panel2)'
+    );
   });
+
   document.getElementById('iamPanel').innerHTML = `
     <div class="kicker">IAM LIFECYCLE</div>
     <h4>${s.title}</h4>
-    <p>${s.text}</p>`;
+    <p>${s.text}</p>
+  `;
 }
+
+
+/* Initial state */
 selectIam('identify');
 
 /* ================= QUIZ ================= */
