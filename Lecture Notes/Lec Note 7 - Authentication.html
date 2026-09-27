@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 07, Authentication</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF0E9;
+    --surface:#FFFFFF;
+    --surface-alt:#F5F6F0;
+    --ink:#1C2321;
+    --ink-soft:#4E5850;
+    --ink-faint:#7C8579;
+    --border:#D9DCD0;
+    --border-strong:#C3C8B9;
+    --gold:#A2711F;
+    --gold-soft:#F1E4C9;
+    --teal:#2C6E63;
+    --teal-soft:#E1EEEA;
+    --rust:#A8412A;
+    --rust-soft:#F5E2DC;
+    --shadow: 0 1px 2px rgba(28,35,33,0.04), 0 6px 20px rgba(28,35,33,0.06);
+    --font-serif: 'Lora', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg:#171B18;
+      --surface:#1F241F;
+      --surface-alt:#242923;
+      --ink:#EDEFE8;
+      --ink-soft:#B7BEB3;
+      --ink-faint:#828A7D;
+      --border:#333A32;
+      --border-strong:#414A3C;
+      --gold:#D8A64A;
+      --gold-soft:#3A2F17;
+      --teal:#63B3A3;
+      --teal-soft:#1C302B;
+      --rust:#DE8267;
+      --rust-soft:#3A211B;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#171B18;
+    --surface:#1F241F;
+    --surface-alt:#242923;
+    --ink:#EDEFE8;
+    --ink-soft:#B7BEB3;
+    --ink-faint:#828A7D;
+    --border:#333A32;
+    --border-strong:#414A3C;
+    --gold:#D8A64A;
+    --gold-soft:#3A2F17;
+    --teal:#63B3A3;
+    --teal-soft:#1C302B;
+    --rust:#DE8267;
+    --rust-soft:#3A211B;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    font-size:16px;
+    line-height:1.6;
+  }
+
+  /* ---------- Progress bar ---------- */
+  #progress{
+    position:fixed; top:0; left:0; height:3px; width:0%;
+    background:linear-gradient(90deg,var(--teal),var(--gold));
+    z-index:200; transition:width .08s linear;
+  }
+
+  /* ---------- Main content ---------- */
+  main{
+    padding: 56px clamp(24px, 6vw, 88px) 120px;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  header.hero{
+    margin-bottom:56px;
+    padding-bottom:36px;
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .kicker{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--teal);
+    text-transform:none;
+    letter-spacing:.02em;
+    margin-bottom:14px;
+    display:flex; gap:10px; align-items:center;
+  }
+  header.hero .kicker::before{
+    content:"";
+    width:26px; height:1px; background:var(--teal);
+    display:inline-block;
+  }
+  header.hero h1{
+    font-family:var(--font-serif);
+    font-size:clamp(34px, 4.2vw, 48px);
+    line-height:1.12;
+    margin:0 0 18px;
+    font-weight:700;
+    max-width:14ch;
+  }
+  header.hero p.lede{
+    font-size:17px;
+    color:var(--ink-soft);
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .objectives{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px 22px;
+    box-shadow:var(--shadow);
+  }
+  .objectives h3{
+    margin:0 0 10px; font-size:12.5px; font-family:var(--font-mono);
+    color:var(--ink-faint); font-weight:500;
+  }
+  .objectives ul{margin:0; padding-left:18px;}
+  .objectives li{font-size:14.5px; margin-bottom:5px; color:var(--ink-soft);}
+
+  section.block{
+    margin-bottom:64px;
+    scroll-margin-top:24px;
+  }
+  section.block h2{
+    font-family:var(--font-serif);
+    font-size:28px;
+    font-weight:700;
+    margin: 0 0 6px;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  section.block h2 .idx{
+    font-family:var(--font-mono);
+    font-size:15px;
+    color:var(--gold);
+    font-weight:500;
+  }
+  section.block > .intro-text{
+    color:var(--ink-soft);
+    font-size:16px;
+    max-width:68ch;
+    margin:14px 0 26px;
+  }
+  h3.sub-h{
+    font-family:var(--font-serif);
+    font-size:20px;
+    font-weight:600;
+    margin:36px 0 12px;
+    scroll-margin-top:24px;
+  }
+  p{margin:0 0 16px; max-width:70ch;}
+  .card p:last-child, .panel p:last-child{margin-bottom:0;}
+
+  strong{font-weight:600;}
+  code, .mono{font-family:var(--font-mono); font-size:.92em;}
+  code{
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    padding:1px 6px;
+    border-radius:5px;
+  }
+
+  /* ---------- Definition / compare table ---------- */
+  .compare{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    margin:22px 0;
+    box-shadow:var(--shadow);
+  }
+  @media (max-width:620px){.compare{grid-template-columns:1fr;}}
+  .compare .col{background:var(--surface); padding:22px 24px;}
+  .compare .col h4{
+    font-family:var(--font-mono); font-size:12.5px; letter-spacing:.02em;
+    margin:0 0 6px; color:var(--ink-faint);
+  }
+  .compare .col .word{
+    font-family:var(--font-serif); font-size:22px; font-weight:600; margin-bottom:10px;
+  }
+  .compare .col.a .word{color:var(--teal);}
+  .compare .col.b .word{color:var(--gold);}
+  .compare .col p{font-size:14.5px; color:var(--ink-soft); margin:0;}
+
+  /* ---------- Factor cards ---------- */
+  .factor-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:24px 0;
+  }
+  @media (max-width:720px){.factor-grid{grid-template-columns:1fr;}}
+  .factor-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .factor-card:hover{border-color:var(--border-strong); transform:translateY(-2px);}
+  .factor-card .tag{
+    font-family:var(--font-mono); font-size:11.5px; color:var(--teal);
+    background:var(--teal-soft); display:inline-block; padding:2px 8px; border-radius:20px; margin-bottom:10px;
+  }
+  .factor-card h4{font-family:var(--font-serif); font-size:17px; margin:0 0 8px;}
+  .factor-card p{font-size:13.8px; color:var(--ink-soft); margin:0 0 10px;}
+  .factor-card .egs{font-size:12.5px; color:var(--ink-faint); font-family:var(--font-mono);}
+  .factor-card .detail{
+    display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-strong);
+    font-size:13.5px; color:var(--ink-soft);
+  }
+  .factor-card.open .detail{display:block;}
+  .factor-card .toggle-hint{font-size:11.5px; color:var(--ink-faint); margin-top:8px; font-family:var(--font-mono);}
+
+  /* ---------- Hash demo ---------- */
+  .demo{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:26px 26px 22px;
+    box-shadow:var(--shadow);
+    margin:24px 0 30px;
+  }
+  .demo .demo-label{
+    font-family:var(--font-mono); font-size:12px; color:var(--ink-faint); margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .demo .demo-label .dot{width:7px; height:7px; border-radius:50%; background:var(--teal);}
+  .demo input[type=text]{
+    width:100%;
+    font-family:var(--font-mono);
+    font-size:15px;
+    padding:11px 14px;
+    border-radius:8px;
+    border:1px solid var(--border-strong);
+    background:var(--surface-alt);
+    color:var(--ink);
+    outline:none;
+  }
+  .demo input[type=text]:focus{border-color:var(--teal);}
+  .demo-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; align-items:center;}
+  .demo button.mini{
+    font-family:var(--font-mono); font-size:12.5px;
+    background:var(--ink); color:var(--surface);
+    border:none; padding:9px 14px; border-radius:7px; cursor:pointer;
+  }
+  .demo button.mini.alt{background:transparent; color:var(--ink-soft); border:1px solid var(--border-strong);}
+  .out-block{
+    margin-top:16px;
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+  }
+  .out-block .k{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-faint); margin-bottom:4px;}
+  .out-block .v{font-family:var(--font-mono); font-size:13px; word-break:break-all; color:var(--teal);}
+  .out-block .v.salted{color:var(--gold);}
+
+  /* ---------- Attack accordion ---------- */
+  .accordion{border-top:1px solid var(--border); margin:22px 0;}
+  .acc-item{border-bottom:1px solid var(--border);}
+  .acc-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:17px 4px; cursor:pointer; gap:16px;
+  }
+  .acc-head .left{display:flex; align-items:center; gap:14px;}
+  .acc-head .sev{
+    font-family:var(--font-mono); font-size:10.5px; padding:3px 8px; border-radius:20px;
+    white-space:nowrap; font-weight:600;
+  }
+  .sev.high{background:var(--rust-soft); color:var(--rust);}
+  .sev.med{background:var(--gold-soft); color:var(--gold);}
+  .acc-head h4{margin:0; font-family:var(--font-serif); font-size:17px; font-weight:600;}
+  .acc-head .plus{
+    font-family:var(--font-mono); font-size:18px; color:var(--ink-faint);
+    transition:transform .2s ease; flex-shrink:0;
+  }
+  .acc-item.open .acc-head .plus{transform:rotate(45deg); color:var(--gold);}
+  .acc-body{
+    max-height:0; overflow:hidden; transition:max-height .25s ease;
+  }
+  .acc-item.open .acc-body{max-height:260px;}
+  .acc-body-inner{padding:0 4px 20px 42px; font-size:14.5px; color:var(--ink-soft);}
+  .acc-body-inner .defense{
+    margin-top:8px; font-size:13.5px;
+    color:var(--teal);
+  }
+  .acc-body-inner .defense b{color:var(--ink);}
+
+  /* ---------- Policy checklist ---------- */
+  .checklist{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:20px 0;}
+  @media (max-width:620px){.checklist{grid-template-columns:1fr;}}
+  .check-item{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--border); border-radius:9px;
+    padding:13px 15px; font-size:13.8px; color:var(--ink-soft); box-shadow:var(--shadow);
+  }
+  .check-item .ck{
+    flex-shrink:0; width:18px; height:18px; border-radius:5px;
+    background:var(--teal-soft); color:var(--teal); font-size:12px;
+    display:flex; align-items:center; justify-content:center; font-weight:700; margin-top:1px;
+  }
+
+  /* ---------- Protocol tabs ---------- */
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin:26px 0 0; border-bottom:1px solid var(--border);}
+  .tab-btn{
+    font-family:var(--font-mono); font-size:12.5px;
+    background:transparent; border:none; padding:11px 16px;
+    color:var(--ink-faint); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .tab-btn.active{color:var(--ink); border-bottom-color:var(--gold); font-weight:600;}
+  .tab-panel{display:none; padding:26px 2px 6px;}
+  .tab-panel.active{display:block;}
+  .proto-meta{display:flex; gap:22px; flex-wrap:wrap; margin:14px 0 20px;}
+  .proto-meta .m{font-size:12.5px; color:var(--ink-faint);}
+  .proto-meta .m b{display:block; color:var(--ink); font-size:14px; font-family:var(--font-serif); font-weight:600;}
+
+  /* ---------- Diagram (flow) ---------- */
+  .diagram-wrap{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:22px; box-shadow:var(--shadow); margin:22px 0;
+  }
+  .flow{display:flex; align-items:center; gap:0; flex-wrap:wrap; justify-content:center; padding:14px 0;}
+  .flow .node{
+    background:var(--surface-alt); border:1px solid var(--border-strong); border-radius:9px;
+    padding:12px 16px; font-size:13px; text-align:center; min-width:110px;
+    font-family:var(--font-mono); color:var(--ink);
+  }
+  .flow .arrow{font-size:20px; color:var(--ink-faint); padding:0 10px;}
+  .steps-list{counter-reset:step; margin:18px 0 0; padding:0; list-style:none;}
+  .steps-list li{
+    counter-increment:step; position:relative; padding:10px 0 10px 40px; font-size:14px; color:var(--ink-soft);
+    border-top:1px solid var(--border);
+  }
+  .steps-list li:first-child{border-top:none;}
+  .steps-list li::before{
+    content:counter(step);
+    position:absolute; left:0; top:9px;
+    width:24px; height:24px; border-radius:50%;
+    background:var(--teal-soft); color:var(--teal);
+    font-family:var(--font-mono); font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .steps-list li b{color:var(--ink);}
+
+  /* ---------- Summary / callout boxes ---------- */
+  .callout{
+    border-left:3px solid var(--gold);
+    background:var(--gold-soft);
+    padding:16px 20px; border-radius:0 10px 10px 0; margin:22px 0; font-size:14.5px; color:var(--ink);
+  }
+  .callout.teal{border-left-color:var(--teal); background:var(--teal-soft);}
+  .callout b{display:block; font-family:var(--font-mono); font-size:11.5px; letter-spacing:.02em; margin-bottom:6px; color:var(--ink-faint);}
+
+  .summary-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:24px 0;}
+  @media (max-width:620px){.summary-grid{grid-template-columns:1fr;}}
+  .summary-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:18px 20px; box-shadow:var(--shadow);
+  }
+  .summary-card h4{margin:0 0 6px; font-family:var(--font-serif); font-size:16px;}
+  .summary-card p{margin:0; font-size:13.5px; color:var(--ink-soft);}
+
+  /* ---------- Quiz ---------- */
+  .quiz-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:22px 24px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .quiz-q{font-family:var(--font-serif); font-size:16.5px; font-weight:600; margin-bottom:14px;}
+  .quiz-opts{display:flex; flex-direction:column; gap:8px;}
+  .quiz-opt{
+    text-align:left; border:1px solid var(--border-strong); background:var(--surface-alt);
+    color:var(--ink); padding:11px 14px; border-radius:8px; font-size:14px; cursor:pointer;
+    font-family:var(--font-sans);
+  }
+  .quiz-opt:hover{border-color:var(--teal);}
+  .quiz-opt.correct{background:var(--teal-soft); border-color:var(--teal); color:var(--teal); font-weight:600;}
+  .quiz-opt.wrong{background:var(--rust-soft); border-color:var(--rust); color:var(--rust); font-weight:600;}
+  .quiz-fb{margin-top:12px; font-size:13.5px; color:var(--ink-soft); display:none;}
+  .quiz-fb.show{display:block;}
+  .quiz-score{
+    text-align:center; padding:20px; font-family:var(--font-serif); font-size:18px;
+    color:var(--ink-soft); display:none;
+  }
+  .quiz-score.show{display:block;}
+
+  footer.end{
+    border-top:1px solid var(--border); margin-top:60px; padding-top:24px;
+    font-size:12.5px; color:var(--ink-faint); font-family:var(--font-mono);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+
+  ::selection{background:var(--gold-soft); color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<main>
+    <header class="hero">
+      <div class="kicker">SE5101 - Computer and Network Security</div>
+      <h1>Authentication</h1>
+      <p class="lede">How systems decide who you claim to be, and how they check whether to believe you. This lecture covers the core vocabulary of identification and authentication, how password-based login actually works under the hood, and the protocols that let authentication happen safely across a network.</p>
+      <div class="objectives">
+        <h3>BY THE END OF THIS LECTURE YOU SHOULD BE ABLE TO</h3>
+        <ul>
+          <li>Distinguish identification from authentication, and authentication from authorization.</li>
+          <li>Name and give examples of the three classic authentication factors.</li>
+          <li>Explain how passwords are stored safely (hashing and salting) and why plaintext storage fails.</li>
+          <li>Describe common attacks on password systems and the corresponding defenses.</li>
+          <li>Walk through the message flow of PAP, CHAP, OTP, Kerberos, RADIUS, and SSO-style protocols (OAuth2/SAML).</li>
+        </ul>
+      </div>
+    </header>
+
+    <!-- 1. INTRO -->
+    <section class="block" id="intro">
+      <h2><span class="idx">01</span> Identification &amp; Authentication</h2>
+      <p class="intro-text">Every secure system needs to answer two separate questions before it lets you do anything: <em>who do you say you are</em>, and <em>can you prove it</em>. These are two different jobs, and conflating them is one of the most common sources of confusion, and of bugs, in security design.</p>
+
+      <div class="compare">
+        <div class="col a">
+          <h4>STEP ONE</h4>
+          <div class="word">Identification</div>
+          <p>The act of <strong>claiming</strong> an identity. You type a username, present an ID card, or scan a badge. The system has not yet verified anything, it has just received a claim it will now try to check.</p>
+        </div>
+        <div class="col b">
+          <h4>STEP TWO</h4>
+          <div class="word">Authentication</div>
+          <p>The act of <strong>proving</strong> that the claimed identity belongs to you. You supply a password, a fingerprint, or a one-time code, evidence the system can check against what it already knows about that identity.</p>
+        </div>
+      </div>
+
+      <p>A third, related term is worth separating out clearly too: <strong>authorization</strong> is what happens after authentication succeeds, deciding <em>what</em> the now-verified identity is allowed to do. A logged-in user is authenticated; whether they can delete another user's file is a question of authorization. Systems that skip this distinction tend to either over-trust a successful login or re-check identity for things that should only require a permission check.</p>
+
+      <div class="callout teal">
+        <b>WORKED EXAMPLE</b>
+        Swiping a staff card at a door is identification (the badge claims "I am employee #4021"). Being asked for a PIN afterwards is authentication (proving you're the person that badge belongs to). The door unlocking only for the server room, not the vault, is authorization.
+      </div>
+    </section>
+
+    <!-- 2. FACTORS -->
+    <section class="block" id="factors">
+      <h2><span class="idx">02</span> Authentication Factors</h2>
+      <p class="intro-text">Authentication evidence is traditionally grouped into three categories, sometimes called <em>factors</em>. Strong authentication schemes combine more than one factor, because each has a different failure mode. Click a card below to see how each factor can fail.</p>
+
+      <div class="factor-grid" id="factor-grid">
+        <div class="factor-card" data-open="false">
+          <span class="tag">KNOWLEDGE</span>
+          <h4>Something you know</h4>
+          <p>A secret held only in memory: a password, PIN, or answer to a security question.</p>
+          <div class="egs">passwords · PINs · passphrases</div>
+          <div class="detail">Cheap to deploy and familiar to users, but it can be guessed, phished, written down, or reused across sites, so its strength depends entirely on user behaviour.</div>
+          <div class="toggle-hint">tap for failure mode →</div>
+        </div>
+        <div class="factor-card" data-open="false">
+          <span class="tag">POSSESSION</span>
+          <h4>Something you have</h4>
+          <p>A physical or digital item only the legitimate user should hold.</p>
+          <div class="egs">hardware token · phone · smart card</div>
+          <div class="detail">Removes the "guessable secret" problem, but the item itself can be lost, stolen, cloned, or left logged in on a shared device.</div>
+          <div class="toggle-hint">tap for failure mode →</div>
+        </div>
+        <div class="factor-card" data-open="false">
+          <span class="tag">INHERENCE</span>
+          <h4>Something you are</h4>
+          <p>A measurable biological trait, used by biometric systems.</p>
+          <div class="egs">fingerprint · face · iris · voice</div>
+          <div class="detail">Cannot be forgotten or (easily) shared, but it cannot be changed if compromised, and sensors can sometimes be fooled or produce false rejections.</div>
+          <div class="toggle-hint">tap for failure mode →</div>
+        </div>
+      </div>
+
+      <p>A less common fourth category is sometimes added: <strong>something you do</strong> (behavioural biometrics, such as typing rhythm or gait) and <strong>somewhere you are</strong> (location-based signals, such as GPS or a trusted network). These are usually used to strengthen an existing factor rather than stand alone.</p>
+
+      <div class="callout">
+        <b>WHY COMBINE FACTORS</b>
+        A stolen password alone is not enough if the account also requires a code from a physical device, the attacker would need to compromise two independent categories of evidence, not just one. This is the entire logic behind multi-factor authentication, covered in Section 5.
+      </div>
+    </section>
+
+    <!-- 3. PASSWORD AUTHENTICATION -->
+    <section class="block" id="password">
+      <h2><span class="idx">03</span> Password Authentication</h2>
+      <p class="intro-text">Passwords remain the most widely deployed authentication mechanism because they need no special hardware and are simple to implement. Their weaknesses come almost entirely from <em>how they are stored and chosen</em>, not from the concept itself.</p>
+
+      <h3 class="sub-h" id="pw-storage">3.1 &nbsp;Storing passwords safely</h3>
+      <p>A naive system stores the password itself and compares it directly on login. This is dangerous: anyone who reads the database, an attacker, a careless administrator, a leaked backup, instantly obtains every user's real password. Two techniques fix this.</p>
+
+      <p><strong>Hashing.</strong> Instead of the password, the server stores the output of a one-way hash function, <code>H(password)</code>. On login, the server hashes the entered password again and compares the two hashes. A good hash function makes it computationally infeasible to reverse the process and recover the original password from its hash.</p>
+
+      <p><strong>Salting.</strong> Hashing alone still has a weakness: two users with the same password produce the same hash, and attackers can pre-compute hashes for common passwords (a <em>rainbow table</em>) and look up matches instantly. A <strong>salt</strong>, a random value unique to each account, is combined with the password before hashing: <code>H(password + salt)</code>. The salt is stored alongside the hash (it doesn't need to be secret) and forces an attacker to attack every account individually rather than reusing one pre-computed table.</p>
+
+      <div class="demo">
+        <div class="demo-label"><span class="dot"></span> INTERACTIVE, try it: type a password below and watch its hash change</div>
+        <input type="text" id="pw-input" placeholder="type a sample password…" autocomplete="off" spellcheck="false">
+        <div class="demo-row">
+          <button class="mini" id="btn-hash">Hash it (SHA-256)</button>
+          <button class="mini alt" id="btn-salt">Add a random salt &amp; re-hash</button>
+        </div>
+        <div class="out-block" id="out-plain" style="display:none;">
+          <div class="k">SHA-256(password), no salt</div>
+          <div class="v" id="v-plain">-</div>
+        </div>
+        <div class="out-block" id="out-salt" style="display:none;">
+          <div class="k">salt (random, stored alongside the hash)</div>
+          <div class="v" id="v-salt-val">-</div>
+          <div class="k" style="margin-top:10px;">SHA-256(password + salt)</div>
+          <div class="v salted" id="v-salted">-</div>
+        </div>
+      </div>
+      <p style="font-size:13.5px; color:var(--ink-faint); margin-top:-14px;">Notice: typing the same password twice and hashing without a salt gives an identical result every time, but adding a salt changes the output even though the password didn't change. This runs entirely in your browser; nothing is sent anywhere.</p>
+
+      <div class="callout">
+        <b>SLOW HASHES, ON PURPOSE</b>
+        General-purpose hashes like SHA-256 are designed to be fast, which is actually bad for password storage, since it makes brute-force guessing cheap for an attacker. Real systems use deliberately slow, memory-hard functions such as <strong>bcrypt</strong>, <strong>scrypt</strong>, or <strong>Argon2</strong>, which add a configurable work factor so guessing billions of passwords becomes too expensive to be practical.
+      </div>
+
+      <h3 class="sub-h" id="pw-attacks">3.2 &nbsp;Common attacks on password systems</h3>
+      <p>Click each attack below to expand its description and the standard defense against it.</p>
+
+      <div class="accordion" id="accordion">
+        <div class="acc-item">
+          <div class="acc-head"><div class="left"><span class="sev high">HIGH</span><h4>Brute-force attack</h4></div><span class="plus">+</span></div>
+          <div class="acc-body"><div class="acc-body-inner">
+            Systematically trying every possible character combination until the correct password is found. Feasible against short or simple passwords given enough computing time.
+            <div class="defense"><b>Defense:</b> long minimum length, slow hash functions (bcrypt/Argon2), account lockout or rate-limiting after repeated failures.</div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-head"><div class="left"><span class="sev high">HIGH</span><h4>Dictionary attack</h4></div><span class="plus">+</span></div>
+          <div class="acc-body"><div class="acc-body-inner">
+            A focused brute force that only tries real words, common passwords, and known leaked passwords instead of every possible string, far faster than exhaustive search because people rarely choose truly random passwords.
+            <div class="defense"><b>Defense:</b> block known-weak/leaked passwords at signup, encourage passphrases over dictionary words, enforce complexity that resists common patterns.</div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-head"><div class="left"><span class="sev med">MED</span><h4>Rainbow table attack</h4></div><span class="plus">+</span></div>
+          <div class="acc-body"><div class="acc-body-inner">
+            Using a large precomputed table mapping hashes back to plaintext passwords, so a stolen hash can be looked up almost instantly instead of recomputed.
+            <div class="defense"><b>Defense:</b> per-account salting makes precomputed tables useless, since every account effectively needs its own table.</div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-head"><div class="left"><span class="sev med">MED</span><h4>Credential stuffing</h4></div><span class="plus">+</span></div>
+          <div class="acc-body"><div class="acc-body-inner">
+            Reusing username/password pairs leaked from one breached site to log into accounts on other, unrelated sites, it works because so many people reuse passwords.
+            <div class="defense"><b>Defense:</b> unique passwords per site (password managers), multi-factor authentication, monitoring for logins matching known-breached credentials.</div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-head"><div class="left"><span class="sev high">HIGH</span><h4>Phishing</h4></div><span class="plus">+</span></div>
+          <div class="acc-body"><div class="acc-body-inner">
+            Tricking the user into typing their real password into a fake login page that looks legitimate, no cryptographic weakness is exploited; the human is the target.
+            <div class="defense"><b>Defense:</b> user awareness training, phishing-resistant second factors (hardware security keys), verified sender/domain checks in email clients.</div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-head"><div class="left"><span class="sev med">MED</span><h4>Shoulder surfing &amp; keylogging</h4></div><span class="plus">+</span></div>
+          <div class="acc-body"><div class="acc-body-inner">
+            Directly observing someone type their password, or capturing keystrokes with malicious software installed on their device.
+            <div class="defense"><b>Defense:</b> masked password input fields, endpoint anti-malware protection, on-screen/virtual keyboards for high-sensitivity logins.</div>
+          </div></div>
+        </div>
+      </div>
+
+      <h3 class="sub-h" id="pw-policy">3.3 &nbsp;What good password practice looks like</h3>
+      <div class="checklist">
+        <div class="check-item"><span class="ck">✓</span>Favour length over complexity, a long passphrase beats a short string of forced symbols.</div>
+        <div class="check-item"><span class="ck">✓</span>Never store passwords in plaintext or with reversible encryption, only salted, slow hashes.</div>
+        <div class="check-item"><span class="ck">✓</span>Check new passwords against known-breached password lists at signup.</div>
+        <div class="check-item"><span class="ck">✓</span>Rate-limit and lock out repeated failed login attempts.</div>
+        <div class="check-item"><span class="ck">✓</span>Encourage unique passwords per account, ideally via a password manager.</div>
+        <div class="check-item"><span class="ck">✓</span>Add a second authentication factor wherever the account matters.</div>
+      </div>
+    </section>
+
+    <!-- 4. PROTOCOLS -->
+    <section class="block" id="protocols">
+      <h2><span class="idx">04</span> Authentication Protocols</h2>
+      <p class="intro-text">A protocol defines the exact sequence of messages two parties exchange to authenticate, over a network, where an eavesdropper might be listening. Select a protocol below to see how it works.</p>
+
+      <div class="tabs" id="proto-tabs">
+        <button class="tab-btn active" data-tab="pap">PAP</button>
+        <button class="tab-btn" data-tab="chap">CHAP</button>
+        <button class="tab-btn" data-tab="otp">OTP</button>
+        <button class="tab-btn" data-tab="kerberos">Kerberos</button>
+        <button class="tab-btn" data-tab="radius">RADIUS</button>
+        <button class="tab-btn" data-tab="sso">OAuth2 / SAML</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-pap">
+        <div class="proto-meta">
+          <div class="m"><b>Password Authentication Protocol</b>credential type</div>
+          <div class="m"><b>Weak</b>security level</div>
+          <div class="m"><b>Legacy PPP links</b>typical use</div>
+        </div>
+        <p>The simplest possible protocol: the client sends its username and password <strong>in the clear</strong> (unencrypted) to the server, which checks them against its records and responds accept or reject.</p>
+        <div class="diagram-wrap">
+          <div class="flow">
+            <div class="node">Client</div><div class="arrow">→</div>
+            <div class="node">username + password (plaintext)</div><div class="arrow">→</div>
+            <div class="node">Server</div>
+          </div>
+        </div>
+        <p>Because the credentials travel unprotected, PAP is only ever acceptable inside an already-encrypted channel (like inside a TLS or IPsec tunnel), never over an open link. It is mostly of historical interest today, as almost everything has replaced it with something stronger.</p>
+      </div>
+
+      <div class="tab-panel" id="panel-chap">
+        <div class="proto-meta">
+          <div class="m"><b>Challenge-Handshake Auth. Protocol</b>credential type</div>
+          <div class="m"><b>Stronger than PAP</b>security level</div>
+          <div class="m"><b>PPP, some VPNs</b>typical use</div>
+        </div>
+        <p>Instead of sending the password itself, CHAP proves knowledge of the password <strong>without ever transmitting it</strong>, using a challenge-response exchange built on a shared secret and a hash function.</p>
+        <div class="diagram-wrap">
+          <ol class="steps-list">
+            <li><b>Server sends a challenge</b>, a random, unpredictable value, to the client.</li>
+            <li><b>Client computes a response</b>, the hash of the challenge combined with the shared secret (password), and sends only that hash back.</li>
+            <li><b>Server performs the same computation</b> independently, using the password it has on record, and compares its result with what the client sent.</li>
+            <li><b>Match → authenticated.</b> Because the challenge is different every time, a captured response cannot be replayed later.</li>
+          </ol>
+        </div>
+        <p>The key idea, proving knowledge of a secret without revealing it, reappears throughout security. CHAP is a simple, practical instance of this general "challenge-response" pattern.</p>
+      </div>
+
+      <div class="tab-panel" id="panel-otp">
+        <div class="proto-meta">
+          <div class="m"><b>One-Time Password</b>credential type</div>
+          <div class="m"><b>Strong (as 2nd factor)</b>security level</div>
+          <div class="m"><b>Banking, MFA apps</b>typical use</div>
+        </div>
+        <p>An OTP is a password valid for only a single login session or a short time window, generated from a shared secret so a captured code is useless afterwards. Two common variants:</p>
+        <div class="diagram-wrap">
+          <ol class="steps-list">
+            <li><b>HOTP (HMAC-based OTP)</b>, the code is derived from the shared secret and a <em>counter</em> that increments every time a code is generated, on both sides.</li>
+            <li><b>TOTP (Time-based OTP)</b>, the code is derived from the shared secret and the <em>current time</em> (typically rounded to a 30-second window), instead of a counter, this is what most authenticator apps use.</li>
+            <li><b>Server independently recomputes</b> the expected code from the same secret and counter/time, and accepts if it matches within an allowed window.</li>
+          </ol>
+        </div>
+        <p>OTP is almost always combined with a password as a second factor, rather than used entirely on its own, since it only proves possession of the generating device, not identity by itself.</p>
+      </div>
+
+      <div class="tab-panel" id="panel-kerberos">
+        <div class="proto-meta">
+          <div class="m"><b>Ticket-based protocol</b>credential type</div>
+          <div class="m"><b>Strong</b>security level</div>
+          <div class="m"><b>Enterprise networks (AD)</b>typical use</div>
+        </div>
+        <p>Kerberos lets a user authenticate once and then access many different services without re-entering a password for each one, using time-limited cryptographic <em>tickets</em> issued by a trusted third party.</p>
+        <div class="diagram-wrap">
+          <ol class="steps-list">
+            <li><b>User → Authentication Server (AS):</b> requests access, proving identity once (e.g. with a password-derived key).</li>
+            <li><b>AS → User:</b> issues a <em>Ticket-Granting Ticket (TGT)</em>, encrypted, valid for a limited time.</li>
+            <li><b>User → Ticket-Granting Server (TGS):</b> presents the TGT to request access to a specific service.</li>
+            <li><b>TGS → User:</b> issues a <em>service ticket</em> for that specific service only.</li>
+            <li><b>User → Service:</b> presents the service ticket directly to the target service, which grants access without contacting the AS again.</li>
+          </ol>
+        </div>
+        <p>The user's real password is only used once, at the very first step, and never sent to each individual service, this is what enables convenient <strong>single sign-on</strong> across many systems.</p>
+      </div>
+
+      <div class="tab-panel" id="panel-radius">
+        <div class="proto-meta">
+          <div class="m"><b>Centralised AAA protocol</b>credential type</div>
+          <div class="m"><b>Strong</b>security level</div>
+          <div class="m"><b>Network access, Wi-Fi/VPN</b>typical use</div>
+        </div>
+        <p>RADIUS (Remote Authentication Dial-In User Service) centralises <strong>A</strong>uthentication, <strong>A</strong>uthorization, and <strong>A</strong>ccounting for many access points (Wi-Fi routers, VPN gateways, switches) against one shared server, rather than each device keeping its own user list.</p>
+        <div class="diagram-wrap">
+          <div class="flow">
+            <div class="node">User</div><div class="arrow">→</div>
+            <div class="node">Access point (client)</div><div class="arrow">→</div>
+            <div class="node">RADIUS server</div>
+          </div>
+          <p style="text-align:center; font-size:13px; color:var(--ink-faint); margin:14px 0 0;">The access point forwards the user's credentials to the RADIUS server, which checks them centrally and returns Accept / Reject / Challenge.</p>
+        </div>
+        <p>This centralisation means a company can add or remove a user in one place and have that change apply instantly across every Wi-Fi access point, VPN server, and switch on the network.</p>
+      </div>
+
+      <div class="tab-panel" id="panel-sso">
+        <div class="proto-meta">
+          <div class="m"><b>Federated / delegated auth</b>credential type</div>
+          <div class="m"><b>Strong</b>security level</div>
+          <div class="m"><b>"Sign in with…" flows</b>typical use</div>
+        </div>
+        <p>Both OAuth 2.0 and SAML let a user prove their identity to one trusted party (an <em>identity provider</em>) and use that proof to access other, unrelated services, without ever handing their password to those other services.</p>
+        <div class="diagram-wrap">
+          <ol class="steps-list">
+            <li><b>User → Service Provider:</b> tries to log in and is redirected to an <em>Identity Provider</em> (e.g. "Sign in with Google").</li>
+            <li><b>User → Identity Provider:</b> authenticates directly with the identity provider (which they already trust and have an account with).</li>
+            <li><b>Identity Provider → Service Provider:</b> sends back a signed proof of identity, an OAuth <em>access token</em> or a SAML <em>assertion</em>, without ever exposing the user's actual password.</li>
+            <li><b>Service Provider:</b> verifies the signature on the token/assertion and grants access based on it.</li>
+          </ol>
+        </div>
+        <p>The practical difference: <strong>SAML</strong> is XML-based and common in enterprise single sign-on; <strong>OAuth 2.0</strong> is token-based (often paired with OpenID Connect for identity specifically) and dominates consumer "sign in with" buttons and API access delegation.</p>
+      </div>
+    </section>
+
+    <!-- 5. MFA -->
+    <section class="block" id="mfa">
+      <h2><span class="idx">05</span> Multi-Factor Authentication</h2>
+      <p class="intro-text">Multi-factor authentication (MFA) requires evidence from <strong>two or more different factor categories</strong> from Section 2 before granting access, not just two pieces of evidence from the same category.</p>
+      <div class="callout">
+        <b>NOT MFA vs. MFA</b>
+        A password plus a security question is <em>not</em> true multi-factor, both are "something you know." A password plus a code from an authenticator app <em>is</em> multi-factor, knowledge plus possession.
+      </div>
+      <p>MFA dramatically raises the cost of an attack, because compromising one factor (e.g. phishing a password) no longer succeeds on its own, the attacker must also compromise an entirely different category of evidence, which typically demands a different attack technique altogether.</p>
+    </section>
+
+    <!-- 6. SUMMARY -->
+    <section class="block" id="summary">
+      <h2><span class="idx">06</span> Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-card"><h4>Identification vs. authentication</h4><p>Claiming an identity is not the same as proving it, and proving it is not the same as being authorized to act.</p></div>
+        <div class="summary-card"><h4>Three factors</h4><p>Know / have / are. Strong systems combine at least two independent categories.</p></div>
+        <div class="summary-card"><h4>Never store plaintext</h4><p>Passwords should be salted and hashed with a slow, memory-hard function, never reversibly encrypted.</p></div>
+        <div class="summary-card"><h4>Attacks target the weakest link</h4><p>Most password attacks exploit human behaviour (reuse, weak choices, phishing) more than the cryptography itself.</p></div>
+        <div class="summary-card"><h4>Challenge-response &gt; sending secrets</h4><p>CHAP, OTP, and Kerberos all avoid transmitting the password itself across the network.</p></div>
+        <div class="summary-card"><h4>Federation enables SSO</h4><p>RADIUS centralises network access decisions; OAuth2/SAML let one trusted login work across many separate services.</p></div>
+      </div>
+    </section>
+
+    <!-- 7. QUIZ -->
+    <section class="block" id="quiz">
+      <h2><span class="idx">07</span> Self-Check Quiz</h2>
+      <p class="intro-text">Four quick questions to check what stuck. Click an option to see if you're right.</p>
+      <div id="quiz-container"></div>
+      <div class="quiz-score" id="quiz-score"></div>
+    </section>
+
+    <footer class="end">
+      <span>AUTHENTICATION</span>
+    </footer>
+  </main>
+
+<script>
+// ---------- Scroll progress ----------
+const progressEl = document.getElementById('progress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+  progressEl.style.width = scrolled + '%';
+});
+
+// ---------- Factor cards ----------
+document.querySelectorAll('.factor-card').forEach(card => {
+  card.addEventListener('click', () => {
+    card.classList.toggle('open');
+  });
+});
+
+// ---------- Accordion ----------
+document.querySelectorAll('.acc-item').forEach(item => {
+  item.querySelector('.acc-head').addEventListener('click', () => {
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.acc-item').forEach(i => i.classList.remove('open'));
+    if(!wasOpen) item.classList.add('open');
+  });
+});
+
+// ---------- Protocol tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- Hash demo ----------
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function randomSalt(len=8){
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btn-hash').addEventListener('click', async () => {
+  const pw = document.getElementById('pw-input').value || '(empty)';
+  const hash = await sha256Hex(pw);
+  document.getElementById('v-plain').textContent = hash;
+  document.getElementById('out-plain').style.display = 'block';
+});
+document.getElementById('btn-salt').addEventListener('click', async () => {
+  const pw = document.getElementById('pw-input').value || '(empty)';
+  const salt = randomSalt();
+  const salted = await sha256Hex(pw + salt);
+  document.getElementById('v-salt-val').textContent = salt;
+  document.getElementById('v-salted').textContent = salted;
+  document.getElementById('out-salt').style.display = 'block';
+});
+
+// ---------- Quiz ----------
+const quizData = [
+  {
+    q: "A website asks for your username, then separately asks for your password. Which step is authentication?",
+    opts: ["Typing the username", "Typing the password", "Both are authentication", "Neither, this is authorization"],
+    correct: 1,
+    fb: "Typing the username is identification (a claim). Typing the password is authentication (proof of that claim)."
+  },
+  {
+    q: "Why is a salt added before hashing a password?",
+    opts: [
+      "To make the hash function run faster",
+      "To encrypt the password so it can be recovered later",
+      "To stop precomputed (rainbow table) attacks by making every account's hash unique",
+      "To shorten the password before storage"
+    ],
+    correct: 2,
+    fb: "A unique salt per account means identical passwords produce different hashes, so an attacker can't reuse one precomputed table across many accounts."
+  },
+  {
+    q: "In CHAP, what does the client actually send back to the server?",
+    opts: [
+      "The plaintext password",
+      "A hash of the challenge combined with the shared secret",
+      "A ticket issued by an authentication server",
+      "An OAuth access token"
+    ],
+    correct: 1,
+    fb: "CHAP never transmits the password itself, only a hash of the server's challenge combined with the shared secret, which is different every time."
+  },
+  {
+    q: "A user logs in with a password AND a security question. Is this multi-factor authentication?",
+    opts: [
+      "Yes, two credentials means two factors",
+      "No, both are 'something you know', so it's still one factor",
+      "Yes, but only if the security question is encrypted",
+      "No, security questions are never valid authentication"
+    ],
+    correct: 1,
+    fb: "MFA requires evidence from different factor categories. A password and a security question are both knowledge factors, so this is not true multi-factor authentication."
+  }
+];
+
+const quizContainer = document.getElementById('quiz-container');
+let answeredCount = 0, correctCount = 0;
+
+quizData.forEach((item, qi) => {
+  const card = document.createElement('div');
+  card.className = 'quiz-card';
+  card.innerHTML = `
+    <div class="quiz-q">${qi+1}. ${item.q}</div>
+    <div class="quiz-opts"></div>
+    <div class="quiz-fb"></div>
+  `;
+  const optsWrap = card.querySelector('.quiz-opts');
+  const fb = card.querySelector('.quiz-fb');
+  let answered = false;
+
+  item.opts.forEach((optText, oi) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = optText;
+    btn.addEventListener('click', () => {
+      if(answered) return;
+      answered = true;
+      answeredCount++;
+      const allBtns = optsWrap.querySelectorAll('.quiz-opt');
+      if(oi === item.correct){
+        btn.classList.add('correct');
+        correctCount++;
+      } else {
+        btn.classList.add('wrong');
+        allBtns[item.correct].classList.add('correct');
+      }
+      fb.textContent = item.fb;
+      fb.classList.add('show');
+
+      if(answeredCount === quizData.length){
+        const scoreEl = document.getElementById('quiz-score');
+        scoreEl.textContent = `You scored ${correctCount} / ${quizData.length}`;
+        scoreEl.classList.add('show');
+      }
+    });
+    optsWrap.appendChild(btn);
+  });
+  quizContainer.appendChild(card);
+});
+</script>
+</body>
+</html>
