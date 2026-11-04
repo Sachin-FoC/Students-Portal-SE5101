@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SE5101 - Lab Sheet 05: Network Reconnaissance</title>
+<style>
+    :root {
+        --navy: #1b2a4a;
+        --blue: #2c5aa0;
+        --light-blue: #eaf1fb;
+        --accent: #d9534f;
+        --gray: #555;
+        --border: #d7e0ec;
+        --green: #2e8b57;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #222;
+        line-height: 1.6;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px 25px 80px;
+        background: #fbfcfe;
+    }
+    header {
+        border-bottom: 4px solid var(--blue);
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+    header h1 {
+        color: var(--navy);
+        margin: 0 0 5px;
+        font-size: 1.7em;
+    }
+    header .module {
+        color: var(--blue);
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+    header .meta {
+        color: var(--gray);
+        font-size: 0.95em;
+        margin-top: 8px;
+    }
+    h2 {
+        color: var(--navy);
+        border-left: 5px solid var(--blue);
+        padding: 6px 12px;
+        background: var(--light-blue);
+        margin-top: 40px;
+        font-size: 1.25em;
+    }
+    h3 {
+        color: var(--blue);
+        margin-top: 25px;
+        font-size: 1.05em;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 4px;
+    }
+    .box {
+        background: var(--light-blue);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 15px 20px;
+        margin: 15px 0;
+    }
+    .warning {
+        background: #fff4e5;
+        border-left: 5px solid #e0a015;
+        padding: 12px 18px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .tip {
+        background: #eafaf1;
+        border-left: 5px solid var(--green);
+        padding: 12px 18px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .task {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-left: 5px solid var(--blue);
+        border-radius: 4px;
+        padding: 15px 20px;
+        margin: 18px 0;
+    }
+    .task-title {
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 8px;
+        font-size: 1.05em;
+    }
+    code, pre {
+        font-family: 'Consolas', 'Courier New', monospace;
+        background: #1e1e2e;
+        color: #d4d4f4;
+        border-radius: 4px;
+    }
+    code {
+        padding: 2px 6px;
+        font-size: 0.92em;
+    }
+    pre {
+        padding: 12px 16px;
+        overflow-x: auto;
+        margin: 10px 0;
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.95em;
+    }
+    th, td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+        vertical-align: top;
+    }
+    th {
+        background: var(--blue);
+        color: white;
+    }
+    tr:nth-child(even) { background: var(--light-blue); }
+    .fill-box {
+        display: inline-block;
+        min-width: 180px;
+        border-bottom: 1px dashed var(--gray);
+        margin: 4px 6px;
+    }
+    .answer-area {
+        border: 1px dashed #aaa;
+        background: #fff;
+        min-height: 60px;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 8px 0;
+        color: #999;
+        font-style: italic;
+    }
+    .checklist li { margin-bottom: 6px; }
+    footer {
+        margin-top: 50px;
+        border-top: 2px solid var(--border);
+        padding-top: 15px;
+        color: var(--gray);
+        font-size: 0.85em;
+        text-align: center;
+    }
+    .step-num {
+        display: inline-block;
+        background: var(--navy);
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 22px;
+        font-size: 0.8em;
+        margin-right: 8px;
+    }
+    .filter-table code { color: var(--navy); background: #f0f4fa; padding: 2px 6px; border-radius: 3px; }
+    @media print {
+        body { max-width: 100%; }
+        h2 { break-before: page; }
+        header + h2 { break-before: avoid; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="module">SE5101 – Computer and Network Security</div>
+    <h1>Lab Sheet 05: Network Reconnaissance</h1>
+    <div class="meta">
+        Duration: 2.5–3 hours &nbsp;|&nbsp; Environment: Kali Linux VM + one or more Target VMs (Host-Only network) &nbsp;|&nbsp;
+        Mode: Individual / Pair &nbsp;|&nbsp; Level: Beginner (builds on Lab 04)
+    </div>
+</header>
+
+<h2>1. Learning Outcomes</h2>
+<div class="box">
+    By the end of this lab, students will be able to:
+    <ul>
+        <li>Explain the difference between <strong>passive</strong> and <strong>active</strong> reconnaissance and where each sits in the attacker "kill chain".</li>
+        <li>Discover live hosts on a subnet using ARP scanning and ICMP/ping sweeps.</li>
+        <li>Perform TCP and UDP port scans with <code>nmap</code> and interpret open / closed / filtered states.</li>
+        <li>Enumerate running services and their versions, and attempt basic OS fingerprinting.</li>
+        <li>Grab service banners manually with <code>netcat</code> and <code>telnet</code>.</li>
+        <li>Run simple Nmap Scripting Engine (NSE) scripts for safe enumeration.</li>
+        <li>Correlate what a scan looks like <em>on the wire</em> by capturing it in Wireshark (linking back to Lab 04).</li>
+    </ul>
+</div>
+
+<h2>2. Pre-Lab Setup</h2>
+<div class="box">
+    <ul class="checklist">
+        <li>☐ Kali Linux VM and at least one target VM (e.g. Metasploitable 2/3, a Linux server VM, or your peer's VM) on the <strong>same Host-Only network</strong> (see Lab Sheet 03).</li>
+        <li>☐ Confirm connectivity with <code>ping</code> before starting, and note your own IP/subnet:
+            <pre>ip a
+ping -c 3 &lt;target-VM-IP&gt;</pre>
+        </li>
+        <li>☐ Verify the tools are present (all ship with Kali):
+            <pre>nmap --version
+netdiscover --help | head -n 3
+nc -h 2&gt;&amp;1 | head -n 3</pre>
+            If <code>nmap</code> is somehow missing:
+            <pre>sudo apt update &amp;&amp; sudo apt install nmap netcat-traditional -y</pre>
+        </li>
+        <li>☐ Create a folder to keep your output files in one place:
+            <pre>mkdir -p ~/lab05_recon &amp;&amp; cd ~/lab05_recon</pre>
+        </li>
+    </ul>
+</div>
+
+<div class="warning">
+    <strong>⚠ Ethics &amp; Legal Notice:</strong> Scanning is <em>only</em> to be performed against the isolated Host-Only lab targets you have been assigned or your own VMs. <strong>Never</strong> scan university infrastructure, public IP addresses, cloud hosts, websites, or any machine you do not own or have written permission to test. Unauthorised port scanning is treated as hostile activity and is a criminal offence in most jurisdictions (e.g. under computer-misuse legislation). When in doubt, don't scan it.
+</div>
+
+<h2>3. Background: What Is Reconnaissance?</h2>
+<div class="box">
+    <p><strong>Reconnaissance</strong> is the information-gathering phase - building a picture of the target before any exploitation is attempted. It is usually split into two types:</p>
+    <table>
+        <tr><th>Type</th><th>Description</th><th>Example techniques</th></tr>
+        <tr><td>Passive</td><td>Gather information <em>without</em> sending traffic directly to the target - the target sees nothing.</td><td>WHOIS lookups, public DNS records, search engines, certificate transparency logs</td></tr>
+        <tr><td>Active</td><td>Interact directly with the target; this generates traffic the target could log or detect.</td><td>Host discovery, port scanning, version detection, banner grabbing</td></tr>
+    </table>
+    <p>This lab focuses mainly on <strong>active</strong> reconnaissance inside the safe lab network, with a short passive component. The logical progression is:</p>
+    <p style="text-align:center; font-weight:600; color:var(--navy);">
+        Discover live hosts &nbsp;→&nbsp; Find open ports &nbsp;→&nbsp; Identify services &amp; versions &nbsp;→&nbsp; Fingerprint the OS
+    </p>
+</div>
+
+<div class="box">
+    <strong>Nmap port states you will meet:</strong>
+    <table>
+        <tr><th>State</th><th>Meaning</th></tr>
+        <tr><td>open</td><td>An application is actively accepting connections on that port.</td></tr>
+        <tr><td>closed</td><td>Port is reachable but nothing is listening (host responded, port shut).</td></tr>
+        <tr><td>filtered</td><td>Nmap can't tell - a firewall/filter is dropping the probes.</td></tr>
+        <tr><td>open|filtered</td><td>Nmap can't decide between open and filtered (common with UDP).</td></tr>
+    </table>
+</div>
+
+<h2>4. Lab Tasks</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">1</span>Passive Recon Warm-Up (Local)</div>
+    <p>Before touching the target, gather what you can about your own machine and network layout - this mirrors how an attacker maps a subnet.</p>
+    <ol>
+        <li>Record your Kali IP, subnet mask, and the network range (CIDR):
+            <pre>ip a
+ip route</pre>
+        </li>
+        <li>Work out the subnet in CIDR form (e.g. <code>192.168.56.0/24</code>) from the IP and mask.</li>
+    </ol>
+    <div class="box">
+        My Kali IP: <span class="fill-box">&nbsp;</span> &nbsp;
+        Subnet mask: <span class="fill-box">&nbsp;</span><br>
+        Network range (CIDR): <span class="fill-box">&nbsp;</span> &nbsp;
+        Default gateway: <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">2</span>Host Discovery - ARP Scan</div>
+    <p>On a local/Host-Only segment, ARP is the most reliable way to find live hosts (it can't be blocked by a host firewall the way ICMP can).</p>
+    <ol>
+        <li>Run an ARP sweep of your subnet with <code>netdiscover</code> (passive/active) - replace the range with yours:
+            <pre>sudo netdiscover -r 192.168.56.0/24</pre>
+            Press <strong>Ctrl+C</strong> after a few seconds once hosts appear.
+        </li>
+        <li>Or use Nmap's ARP-based host discovery (no port scan, <code>-sn</code>):
+            <pre>sudo nmap -sn 192.168.56.0/24</pre>
+        </li>
+        <li>List every live host you found.</li>
+    </ol>
+    <div class="box">
+        Live hosts discovered (IP &amp; MAC where shown):
+        <div class="answer-area">List them here...</div>
+        Which IP is your assigned <strong>target</strong>? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> <code>-sn</code> means "ping scan / no port scan". It answers only one question: <em>which hosts are up?</em> Use it first so you don't waste time scanning dead IPs.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">3</span>Basic TCP Port Scan</div>
+    <p>Now focus on your single target. Start with a default Nmap scan of the most common 1000 TCP ports.</p>
+    <pre>nmap &lt;target-IP&gt;</pre>
+    <p>Then run a faster explicit SYN ("half-open") scan, which needs root:</p>
+    <pre>sudo nmap -sS &lt;target-IP&gt;</pre>
+    <div class="box">
+        Open ports found (port / state / service guess):
+        <div class="answer-area">e.g. 22/tcp open ssh ...</div>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> <code>-sS</code> (SYN scan) sends a SYN and, on getting SYN-ACK, replies with RST instead of completing the handshake - so the connection is never fully established. Compare this with the full three-way handshake you saw in Lab 04.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">4</span>Wider &amp; UDP Scans</div>
+    <ol>
+        <li>Scan <strong>all</strong> 65,535 TCP ports (slower - be patient):
+            <pre>sudo nmap -p- &lt;target-IP&gt;</pre>
+        </li>
+        <li>Scan a few common UDP ports (UDP scans are slow and often show <code>open|filtered</code>):
+            <pre>sudo nmap -sU --top-ports 20 &lt;target-IP&gt;</pre>
+        </li>
+    </ol>
+    <div class="box">
+        Any extra TCP ports found beyond the top-1000 scan? <span class="fill-box">&nbsp;</span><br>
+        UDP ports reported open / open|filtered: <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">5</span>Service &amp; Version Detection</div>
+    <p>Knowing a port is open is not enough - you want to know <em>what</em> is running and its version (this is what drives vulnerability lookups later in the module).</p>
+    <pre>sudo nmap -sV &lt;target-IP&gt;</pre>
+    <p>For a more aggressive combined scan (version + default scripts + OS + traceroute):</p>
+    <pre>sudo nmap -A &lt;target-IP&gt;</pre>
+    <div class="box">
+        <table>
+            <tr><th>Port</th><th>Service</th><th>Product / Version</th></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+        </table>
+    </div>
+    <div class="warning">
+        <strong>Note:</strong> <code>-A</code> is noisy and heavier on the target. Only ever run it against your assigned lab target, never anything else.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">6</span>OS Fingerprinting</div>
+    <p>Nmap can guess the operating system from subtle differences in how the TCP/IP stack responds.</p>
+    <pre>sudo nmap -O &lt;target-IP&gt;</pre>
+    <div class="box">
+        OS guess / device type: <span class="fill-box">&nbsp;</span> &nbsp;
+        Accuracy % reported: <span class="fill-box">&nbsp;</span><br>
+        TTL value observed (hint at OS family): <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> Recall from Lab 04 that a starting TTL near 64 usually means a Linux/Unix host, and near 128 usually means Windows. Nmap uses many more signals than TTL, but it's a quick sanity check.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">7</span>Manual Banner Grabbing</div>
+    <p>Many services announce themselves when you connect. Grab a banner by hand - no Nmap required.</p>
+    <ol>
+        <li>Using <code>netcat</code> against an open TCP port (try SSH on 22 or a web server on 80):
+            <pre>nc &lt;target-IP&gt; 22</pre>
+        </li>
+        <li>For an HTTP banner, connect and issue a minimal request:
+            <pre>nc &lt;target-IP&gt; 80
+HEAD / HTTP/1.0
+
+</pre>
+            (type the <code>HEAD</code> line, then press Enter twice)
+        </li>
+        <li>You can also try <code>telnet &lt;target-IP&gt; 21</code> against an FTP port.</li>
+    </ol>
+    <div class="box">
+        Banner text captured (service &amp; version string):
+        <div class="answer-area">Paste the banner here...</div>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">8</span>Nmap Scripting Engine (NSE)</div>
+    <p>NSE adds ready-made enumeration scripts. Use only safe, default-category scripts in this lab.</p>
+    <ol>
+        <li>Run the default script set against open ports:
+            <pre>sudo nmap -sC &lt;target-IP&gt;</pre>
+        </li>
+        <li>Try a specific, harmless enumeration script, e.g. HTTP title or SSH host key:
+            <pre>nmap --script http-title &lt;target-IP&gt; -p 80
+nmap --script ssh-hostkey &lt;target-IP&gt; -p 22</pre>
+        </li>
+    </ol>
+    <div class="box">
+        Which script did you run? <span class="fill-box">&nbsp;</span><br>
+        What extra information did it reveal?
+        <div class="answer-area">Describe here...</div>
+    </div>
+    <div class="warning">
+        <strong>⚠</strong> Avoid <code>vuln</code>, <code>brute</code>, <code>dos</code> or <code>exploit</code> category scripts in this lab - they are intrusive and out of scope. Stick to <code>default</code>, <code>safe</code>, and <code>discovery</code>.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">9</span>See the Scan on the Wire (Wireshark link-back)</div>
+    <p>Tie this lab to Lab 04: capture your own scan traffic and observe what scanning actually looks like.</p>
+    <ol>
+        <li>Start a Wireshark capture on the Host-Only interface (as in Lab 04).</li>
+        <li>In a terminal, run a small SYN scan of a handful of ports:
+            <pre>sudo nmap -sS -p 20-25,80,443 &lt;target-IP&gt;</pre>
+        </li>
+        <li>Stop the capture. Apply a display filter to see the scan probes:
+            <pre>tcp.flags.syn == 1 &amp;&amp; tcp.flags.ack == 0</pre>
+        </li>
+        <li>Notice the burst of SYN packets to many ports, and how open ports reply with SYN-ACK while closed ports reply with RST.</li>
+    </ol>
+    <div class="box">
+        For an <strong>open</strong> port, what did the target reply with? <span class="fill-box">&nbsp;</span><br>
+        For a <strong>closed</strong> port, what did the target reply with? <span class="fill-box">&nbsp;</span><br>
+        Roughly how many SYN packets did the scan send? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">10</span>Save Your Scan Output</div>
+    <p>Re-run your best summary scan and save it in all formats for your submission:</p>
+    <pre>sudo nmap -sV -O -oA StudentID_Lab05_scan &lt;target-IP&gt;</pre>
+    <p>The <code>-oA</code> flag writes three files: <code>.nmap</code> (human-readable), <code>.gnmap</code> (greppable), and <code>.xml</code>.</p>
+    <div class="box">
+        Confirm the files exist:
+        <pre>ls -l StudentID_Lab05_scan.*</pre>
+        These files are part of your submission.
+    </div>
+</div>
+
+<h2>5. Quick Reference: Common Nmap Commands</h2>
+<div class="box">
+    <table class="filter-table">
+        <tr><th>Goal</th><th>Command</th></tr>
+        <tr><td>Host discovery only (no port scan)</td><td><code>nmap -sn 192.168.56.0/24</code></td></tr>
+        <tr><td>Default TCP scan (top 1000 ports)</td><td><code>nmap &lt;IP&gt;</code></td></tr>
+        <tr><td>SYN / half-open scan (needs root)</td><td><code>nmap -sS &lt;IP&gt;</code></td></tr>
+        <tr><td>Scan all 65535 TCP ports</td><td><code>nmap -p- &lt;IP&gt;</code></td></tr>
+        <tr><td>Scan specific ports</td><td><code>nmap -p 22,80,443 &lt;IP&gt;</code></td></tr>
+        <tr><td>UDP scan (top 20)</td><td><code>nmap -sU --top-ports 20 &lt;IP&gt;</code></td></tr>
+        <tr><td>Service / version detection</td><td><code>nmap -sV &lt;IP&gt;</code></td></tr>
+        <tr><td>OS detection</td><td><code>nmap -O &lt;IP&gt;</code></td></tr>
+        <tr><td>Aggressive (version+scripts+OS+trace)</td><td><code>nmap -A &lt;IP&gt;</code></td></tr>
+        <tr><td>Default safe scripts</td><td><code>nmap -sC &lt;IP&gt;</code></td></tr>
+        <tr><td>Run one named script</td><td><code>nmap --script http-title &lt;IP&gt;</code></td></tr>
+        <tr><td>Save output in all formats</td><td><code>nmap -oA filename &lt;IP&gt;</code></td></tr>
+        <tr><td>Faster timing (careful)</td><td><code>nmap -T4 &lt;IP&gt;</code></td></tr>
+    </table>
+</div>
+
+<h2>6. Post-Lab Questions</h2>
+<div class="box">
+    <ol>
+        <li>Explain the difference between passive and active reconnaissance, and give one example of each.</li>
+        <li>Why is an ARP scan more reliable than an ICMP ping sweep for discovering hosts on a local subnet?</li>
+        <li>What is the practical difference between a TCP <strong>SYN scan</strong> (<code>-sS</code>) and a full TCP <strong>connect scan</strong> (<code>-sT</code>)? Relate your answer to the three-way handshake from Lab 04.</li>
+        <li>Nmap reports a port as <code>filtered</code>. What does this tell you about the target, and why can't Nmap be more specific?</li>
+        <li>Why are UDP scans generally slower and less conclusive than TCP scans?</li>
+        <li>Service version detection returned an old software version on the target. From a defender's point of view, why is exposing version banners a risk, and how could it be mitigated?</li>
+        <li>From a defender's perspective, name two ways a network administrator could detect or slow down the scanning you performed in this lab.</li>
+    </ol>
+    <div class="answer-area" style="min-height:150px;">Write your answers here...</div>
+</div>
+
+<h2>7. Submission Checklist</h2>
+<div class="box">
+    <ul class="checklist">
+        <li>☐ Your saved Nmap output files (<code>.nmap</code>, <code>.gnmap</code>, <code>.xml</code>) from Task 10.</li>
+        <li>☐ List of live hosts discovered (Task 2).</li>
+        <li>☐ Screenshot of the SYN scan results and the open-ports table (Tasks 3 &amp; 5).</li>
+        <li>☐ Screenshot of the OS fingerprinting result (Task 6).</li>
+        <li>☐ The banner text you grabbed manually (Task 7).</li>
+        <li>☐ Screenshot of an NSE script result (Task 8).</li>
+        <li>☐ Wireshark screenshot of the scan traffic with the SYN filter applied (Task 9).</li>
+        <li>☐ Answers to all Post-Lab Questions (Section 6).</li>
+        <li>☐ Submit as a single PDF plus the scan files, named: <code>StudentID_SE5101_Lab05.pdf</code> and <code>StudentID_Lab05_scan.*</code></li>
+    </ul>
+</div>
+
+<footer>
+    SE5101 – Computer and Network Security &nbsp;|&nbsp; Lab Sheet 05 of the module series &nbsp;|&nbsp; For educational use within an isolated lab environment only.
+</footer>
+
+</body>
+</html>

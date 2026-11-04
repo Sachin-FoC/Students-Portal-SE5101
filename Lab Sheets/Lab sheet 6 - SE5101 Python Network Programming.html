@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SE5101 - Lab Sheet 06: Python for Network Programming</title>
+<style>
+    :root {
+        --navy: #1b2a4a;
+        --blue: #2c5aa0;
+        --light-blue: #eaf1fb;
+        --accent: #d9534f;
+        --gray: #555;
+        --border: #d7e0ec;
+        --green: #2e8b57;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #222;
+        line-height: 1.6;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px 25px 80px;
+        background: #fbfcfe;
+    }
+    header {
+        border-bottom: 4px solid var(--blue);
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+    header h1 {
+        color: var(--navy);
+        margin: 0 0 5px;
+        font-size: 1.7em;
+    }
+    header .module {
+        color: var(--blue);
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+    header .meta {
+        color: var(--gray);
+        font-size: 0.95em;
+        margin-top: 8px;
+    }
+    h2 {
+        color: var(--navy);
+        border-left: 5px solid var(--blue);
+        padding: 6px 12px;
+        background: var(--light-blue);
+        margin-top: 40px;
+        font-size: 1.25em;
+    }
+    h3 {
+        color: var(--blue);
+        margin-top: 25px;
+        font-size: 1.05em;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 4px;
+    }
+    .box {
+        background: var(--light-blue);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 15px 20px;
+        margin: 15px 0;
+    }
+    .warning {
+        background: #fff4e5;
+        border-left: 5px solid #e0a015;
+        padding: 12px 18px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .tip {
+        background: #eafaf1;
+        border-left: 5px solid var(--green);
+        padding: 12px 18px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .task {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-left: 5px solid var(--blue);
+        border-radius: 4px;
+        padding: 15px 20px;
+        margin: 18px 0;
+    }
+    .task-title {
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 8px;
+        font-size: 1.05em;
+    }
+    code, pre {
+        font-family: 'Consolas', 'Courier New', monospace;
+        background: #1e1e2e;
+        color: #d4d4f4;
+        border-radius: 4px;
+    }
+    code {
+        padding: 2px 6px;
+        font-size: 0.92em;
+    }
+    pre {
+        padding: 12px 16px;
+        overflow-x: auto;
+        margin: 10px 0;
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.95em;
+    }
+    th, td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+        vertical-align: top;
+    }
+    th {
+        background: var(--blue);
+        color: white;
+    }
+    tr:nth-child(even) { background: var(--light-blue); }
+    .fill-box {
+        display: inline-block;
+        min-width: 180px;
+        border-bottom: 1px dashed var(--gray);
+        margin: 4px 6px;
+    }
+    .answer-area {
+        border: 1px dashed #aaa;
+        background: #fff;
+        min-height: 60px;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 8px 0;
+        color: #999;
+        font-style: italic;
+    }
+    .checklist li { margin-bottom: 6px; }
+    footer {
+        margin-top: 50px;
+        border-top: 2px solid var(--border);
+        padding-top: 15px;
+        color: var(--gray);
+        font-size: 0.85em;
+        text-align: center;
+    }
+    .step-num {
+        display: inline-block;
+        background: var(--navy);
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 22px;
+        font-size: 0.8em;
+        margin-right: 8px;
+    }
+    .filter-table code { color: var(--navy); background: #f0f4fa; padding: 2px 6px; border-radius: 3px; }
+    @media print {
+        body { max-width: 100%; }
+        h2 { break-before: page; }
+        header + h2 { break-before: avoid; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="module">SE5101 - Computer and Network Security</div>
+    <h1>Lab Sheet 06: Python for Network Programming</h1>
+    <div class="meta">
+        Duration: 3 hours &nbsp;|&nbsp; Environment: Kali Linux VM (or any Linux/Windows with Python 3) + optional second VM &nbsp;|&nbsp;
+        Mode: Individual / Pair &nbsp;|&nbsp; Level: Beginner (some earlier labs assumed)
+    </div>
+</header>
+
+<h2>1. Learning Outcomes</h2>
+<div class="box">
+    By the end of this lab, students will be able to:
+    <ul>
+        <li>Write and run basic Python 3 programs (variables, input/output, conditionals, loops, data structures).</li>
+        <li>Define and call <strong>functions</strong>, pass arguments, and return values.</li>
+        <li>Explain what a <strong>socket</strong> is and how TCP client/server communication works in code.</li>
+        <li>Build a simple TCP <strong>echo server</strong> and a matching <strong>client</strong>.</li>
+        <li>Handle <strong>multiple clients concurrently</strong> using the <code>threading</code> module.</li>
+        <li>Write a small UDP client/server and a basic Python <strong>port scanner</strong>, linking back to Lab 05.</li>
+    </ul>
+</div>
+
+<h2>2. Pre-Lab Setup</h2>
+<div class="box">
+    <ul class="checklist">
+        <li>☐ Confirm Python 3 is installed (pre-installed on Kali):
+            <pre>python3 --version</pre>
+            If missing on a Debian/Ubuntu system:
+            <pre>sudo apt update &amp;&amp; sudo apt install python3 -y</pre>
+        </li>
+        <li>☐ Pick an editor: <code>nano</code>, <code>vim</code>, VS Code, or Kali's built-in text editor. This sheet uses <code>nano</code> in examples.</li>
+        <li>☐ Create a working folder for this lab:
+            <pre>mkdir -p ~/lab06_python &amp;&amp; cd ~/lab06_python</pre>
+        </li>
+        <li>☐ (Optional) A second VM on the same Host-Only network to test client/server across machines. Everything also works on a single machine using <code>127.0.0.1</code> (localhost).</li>
+    </ul>
+</div>
+
+<div class="tip">
+    <strong>How to run a Python file:</strong> save your code to a file such as <code>hello.py</code>, then run it with <code>python3 hello.py</code>. To stop a running program (like a server), press <strong>Ctrl+C</strong>.
+</div>
+
+<div class="warning">
+    <strong>⚠ Ethics Notice:</strong> The port scanner and any network code in this lab are to be run <em>only</em> against <code>127.0.0.1</code> or your own isolated Host-Only lab VMs. Never point them at machines, servers, or websites you do not own or have permission to test. The same rules from Lab 05 apply here.
+</div>
+
+<h2>3. Background: Why Python for Networking?</h2>
+<div class="box">
+    <p>Python is widely used in security work because it is quick to write, readable, and ships with a powerful standard library. Its <code>socket</code> module gives direct access to the same TCP/UDP mechanisms you observed in Wireshark (Lab 04) and probed with Nmap (Lab 05) - but now <em>you</em> write the code that opens connections and sends data.</p>
+    <p>A <strong>socket</strong> is one endpoint of a two-way communication link between two programs over a network. It is identified by an <strong>IP address</strong> and a <strong>port number</strong>. The typical flow for a TCP connection is:</p>
+    <table>
+        <tr><th>Server side</th><th>Client side</th></tr>
+        <tr><td>1. <code>socket()</code> - create socket</td><td>1. <code>socket()</code> - create socket</td></tr>
+        <tr><td>2. <code>bind()</code> - attach to an IP/port</td><td>&nbsp;</td></tr>
+        <tr><td>3. <code>listen()</code> - wait for connections</td><td>&nbsp;</td></tr>
+        <tr><td>4. <code>accept()</code> - accept a client</td><td>2. <code>connect()</code> - connect to server</td></tr>
+        <tr><td>5. <code>recv()</code> / <code>send()</code> - exchange data</td><td>3. <code>send()</code> / <code>recv()</code> - exchange data</td></tr>
+        <tr><td>6. <code>close()</code></td><td>4. <code>close()</code></td></tr>
+    </table>
+</div>
+
+<h2>4. Part A - Python Basics</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">1</span>Hello, Variables and Output</div>
+    <p>Create a file <code>basics.py</code> and type the following:</p>
+    <pre>name = input("Enter your name: ")
+age = int(input("Enter your age: "))
+
+print("Hello,", name)
+print("Next year you will be", age + 1)</pre>
+    <p>Run it: <code>python3 basics.py</code></p>
+    <div class="box">
+        What data type does <code>input()</code> return by default? <span class="fill-box">&nbsp;</span><br>
+        Why is <code>int()</code> needed around the age input? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> Python is dynamically typed - you don't declare types. But <code>input()</code> always gives a <em>string</em>, so convert with <code>int()</code> or <code>float()</code> when you need numbers.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">2</span>Conditionals and Loops</div>
+    <p>Add this to a new file <code>flow.py</code>:</p>
+    <pre>for number in range(1, 6):
+    if number % 2 == 0:
+        print(number, "is even")
+    else:
+        print(number, "is odd")
+
+total = 0
+count = 0
+while count &lt; 5:
+    total = total + count
+    count = count + 1
+print("Sum 0..4 =", total)</pre>
+    <div class="box">
+        What does <code>range(1, 6)</code> produce? <span class="fill-box">&nbsp;</span><br>
+        What is the final value of <code>total</code>? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="warning">
+        <strong>Note:</strong> Python uses <strong>indentation</strong> (usually 4 spaces) to define code blocks - not curly braces. Mixing tabs and spaces will cause errors.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">3</span>Data Structures: Lists and Dictionaries</div>
+    <p>Create <code>data.py</code>:</p>
+    <pre>ports = [22, 80, 443, 8080]
+services = {22: "SSH", 80: "HTTP", 443: "HTTPS"}
+
+print("Number of ports:", len(ports))
+ports.append(53)
+print("Ports now:", ports)
+
+for p in ports:
+    name = services.get(p, "unknown")
+    print("Port", p, "->", name)</pre>
+    <div class="box">
+        What does <code>services.get(53, "unknown")</code> return, and why? <span class="fill-box">&nbsp;</span><br>
+        How would you add a new entry <code>53: "DNS"</code> to the dictionary?
+        <div class="answer-area">Write the line of code here...</div>
+    </div>
+</div>
+
+<h2>5. Part B - Functions</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">4</span>Define and Call a Function</div>
+    <p>Create <code>functions.py</code>:</p>
+    <pre>def greet(name):
+    """Return a greeting string for the given name."""
+    return "Hello, " + name + "!"
+
+def add(a, b):
+    return a + b
+
+# Call the functions
+print(greet("Kali"))
+result = add(5, 7)
+print("5 + 7 =", result)</pre>
+    <div class="box">
+        What keyword defines a function in Python? <span class="fill-box">&nbsp;</span><br>
+        What does the <code>return</code> statement do? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">5</span>A More Useful Function</div>
+    <p>Write a function that checks whether a given number is a "well-known" port (0-1023). Add to <code>functions.py</code>:</p>
+    <pre>def is_well_known(port):
+    if port &gt;= 0 and port &lt;= 1023:
+        return True
+    else:
+        return False
+
+for test in [22, 80, 3306, 8080]:
+    print(test, "well-known?", is_well_known(test))</pre>
+    <div class="box">
+        Which of the tested ports are well-known?
+        <div class="answer-area">List them here...</div>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> Functions let you reuse logic and keep programs readable. A good function does one clear thing and (usually) returns a value rather than printing directly.
+    </div>
+</div>
+
+<h2>6. Part C - TCP Client/Server with Sockets</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">6</span>Build a TCP Echo Server</div>
+    <p>An <strong>echo server</strong> sends back whatever the client sends it. Create <code>server.py</code>:</p>
+    <pre>import socket
+
+HOST = "127.0.0.1"   # listen on localhost
+PORT = 5000          # a free, non-privileged port
+
+# 1. Create a TCP socket
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# Allow quick reuse of the address after restart
+server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+# 2. Bind to the IP/port and 3. listen
+server_socket.bind((HOST, PORT))
+server_socket.listen(1)
+print(f"[*] Server listening on {HOST}:{PORT}")
+
+# 4. Accept a client connection
+conn, addr = server_socket.accept()
+print(f"[+] Connection from {addr}")
+
+# 5. Receive and echo data back
+while True:
+    data = conn.recv(1024)
+    if not data:
+        break
+    print("[&lt;] Received:", data.decode())
+    conn.sendall(data)   # echo it back
+
+conn.close()
+server_socket.close()
+print("[*] Connection closed")</pre>
+    <div class="tip">
+        <strong>What the arguments mean:</strong> <code>AF_INET</code> = IPv4, <code>SOCK_STREAM</code> = TCP. <code>recv(1024)</code> reads up to 1024 bytes. Data on a socket is <em>bytes</em>, so we <code>.decode()</code> to read it as text and the client will <code>.encode()</code> to send text.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">7</span>Build the Matching TCP Client</div>
+    <p>Create <code>client.py</code>:</p>
+    <pre>import socket
+
+HOST = "127.0.0.1"
+PORT = 5000
+
+# 1. Create socket and 2. connect
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((HOST, PORT))
+print(f"[*] Connected to {HOST}:{PORT}")
+
+# 3. Send a message, then receive the echo
+message = input("Enter a message to send: ")
+client_socket.sendall(message.encode())
+
+response = client_socket.recv(1024)
+print("[&gt;] Server echoed:", response.decode())
+
+client_socket.close()</pre>
+    <p><strong>Run it:</strong> open <strong>two terminals</strong> in the same folder.</p>
+    <ol>
+        <li>Terminal 1 (start the server first): <code>python3 server.py</code></li>
+        <li>Terminal 2 (then the client): <code>python3 client.py</code></li>
+        <li>Type a message in the client and watch it appear on the server and get echoed back.</li>
+    </ol>
+    <div class="box">
+        What message did you send? <span class="fill-box">&nbsp;</span><br>
+        What did the server print, and what did the client receive back? <span class="fill-box">&nbsp;</span><br>
+        What happens if you start the client <em>before</em> the server? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">8</span>Watch Your Own Traffic (Wireshark link-back)</div>
+    <p>Tie this to Lab 04. Start a Wireshark capture on the <strong>loopback</strong> interface (<code>lo</code>), then run the client/server exchange again.</p>
+    <ol>
+        <li>Apply the display filter: <pre>tcp.port == 5000</pre></li>
+        <li>Find the three-way handshake (SYN, SYN-ACK, ACK) that your Python code triggered.</li>
+        <li>Find the packet carrying your actual message text (check the packet bytes pane).</li>
+    </ol>
+    <div class="box">
+        Could you see your message in plaintext in the capture? <span class="fill-box">&nbsp;</span><br>
+        What does this tell you about sending sensitive data over a plain TCP socket? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<h2>7. Part D - Handling Multiple Clients with Threading</h2>
+
+<div class="box">
+    <p>The server in Task 6 handles only <strong>one</strong> client at a time - it blocks inside <code>accept()</code> and the receive loop. To serve many clients at once, we give each accepted connection its own <strong>thread</strong>, so the main loop can go straight back to accepting new clients.</p>
+    <p>A <strong>thread</strong> is a separate line of execution running inside the same program. Python's <code>threading</code> module lets us start a new thread per client.</p>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">9</span>Multi-Client Threaded Server</div>
+    <p>Create <code>threaded_server.py</code>:</p>
+    <pre>import socket
+import threading
+
+HOST = "127.0.0.1"
+PORT = 5000
+
+def handle_client(conn, addr):
+    """Runs in its own thread for each connected client."""
+    print(f"[+] New connection from {addr}")
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        message = data.decode()
+        print(f"[&lt;] {addr}: {message}")
+        reply = f"Server received: {message}"
+        conn.sendall(reply.encode())
+    conn.close()
+    print(f"[-] {addr} disconnected")
+
+def main():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((HOST, PORT))
+    server.listen(5)
+    print(f"[*] Threaded server listening on {HOST}:{PORT}")
+
+    while True:
+        conn, addr = server.accept()
+        # Hand this client to a new thread
+        thread = threading.Thread(target=handle_client, args=(conn, addr))
+        thread.start()
+        print(f"[*] Active connections: {threading.active_count() - 1}")
+
+if __name__ == "__main__":
+    main()</pre>
+    <div class="tip">
+        <strong>Tip:</strong> <code>listen(5)</code> sets the backlog (how many pending connections may queue). Each call to <code>threading.Thread(...).start()</code> launches <code>handle_client</code> concurrently, so the <code>while</code> loop immediately returns to <code>accept()</code> for the next client.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">10</span>Test With Several Clients</div>
+    <p>You can reuse <code>client.py</code>, but a small loop makes testing easier. Create <code>chat_client.py</code>:</p>
+    <pre>import socket
+
+HOST = "127.0.0.1"
+PORT = 5000
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect((HOST, PORT))
+print(f"[*] Connected to {HOST}:{PORT} (type 'quit' to exit)")
+
+while True:
+    message = input("You: ")
+    if message.lower() == "quit":
+        break
+    client.sendall(message.encode())
+    response = client.recv(1024)
+    print(response.decode())
+
+client.close()</pre>
+    <ol>
+        <li>Terminal 1: <code>python3 threaded_server.py</code></li>
+        <li>Terminals 2, 3, 4: run <code>python3 chat_client.py</code> in each.</li>
+        <li>Send messages from each client and confirm the server handles them all at once.</li>
+    </ol>
+    <div class="box">
+        How many clients did you connect at the same time? <span class="fill-box">&nbsp;</span><br>
+        What did the server print for "Active connections"? <span class="fill-box">&nbsp;</span><br>
+        Did one client have to wait for another to finish? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<h2>8. Part E - UDP and a Simple Port Scanner</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">11</span>A Quick UDP Client/Server</div>
+    <p>UDP is connectionless - no handshake, no guaranteed delivery. Note the different socket type (<code>SOCK_DGRAM</code>) and that there is no <code>listen()</code>/<code>accept()</code>.</p>
+    <p><code>udp_server.py</code>:</p>
+    <pre>import socket
+
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server.bind(("127.0.0.1", 6000))
+print("[*] UDP server ready on port 6000")
+
+while True:
+    data, addr = server.recvfrom(1024)
+    print(f"[&lt;] From {addr}: {data.decode()}")
+    server.sendto(b"ACK: " + data, addr)</pre>
+    <p><code>udp_client.py</code>:</p>
+    <pre>import socket
+
+client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+msg = input("Message to send over UDP: ")
+client.sendto(msg.encode(), ("127.0.0.1", 6000))
+
+data, addr = client.recvfrom(1024)
+print("[&gt;] Reply:", data.decode())
+client.close()</pre>
+    <div class="box">
+        Name two differences you noticed between the TCP and UDP code.
+        <div class="answer-area">1. ...&nbsp;&nbsp; 2. ...</div>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">12</span>Build a Basic Port Scanner (links to Lab 05)</div>
+    <p>This ties your Python skills back to the Nmap lab: you'll write a tiny TCP connect scanner. It tries to connect to a range of ports and reports which are open.</p>
+    <pre>import socket
+
+def scan_port(host, port):
+    """Return True if the TCP port is open, else False."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.5)          # don't wait forever
+    result = s.connect_ex((host, port))   # 0 means success
+    s.close()
+    return result == 0
+
+target = "127.0.0.1"
+print(f"[*] Scanning {target} ...")
+
+for port in range(1, 1025):
+    if scan_port(target, port):
+        print(f"[+] Port {port} is OPEN")
+
+print("[*] Scan complete")</pre>
+    <ol>
+        <li>Start your <code>threaded_server.py</code> (so port 5000 is open) in another terminal, then run the scanner:
+            <pre>python3 scanner.py</pre>
+        </li>
+        <li>Confirm the scanner reports port 5000 as open.</li>
+    </ol>
+    <div class="box">
+        Which ports did your scanner report as open on <code>127.0.0.1</code>?
+        <div class="answer-area">List them here...</div>
+        How does <code>connect_ex()</code> differ from <code>connect()</code>? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="warning">
+        <strong>⚠</strong> Run this scanner only against <code>127.0.0.1</code> or your assigned lab VM. This is functionally a mini version of what Nmap does - the same ethics and legal rules from Lab 05 apply.
+    </div>
+</div>
+
+<h2>9. Quick Reference: Python Socket Essentials</h2>
+<div class="box">
+    <table class="filter-table">
+        <tr><th>Goal</th><th>Code</th></tr>
+        <tr><td>Create TCP socket</td><td><code>socket.socket(socket.AF_INET, socket.SOCK_STREAM)</code></td></tr>
+        <tr><td>Create UDP socket</td><td><code>socket.socket(socket.AF_INET, socket.SOCK_DGRAM)</code></td></tr>
+        <tr><td>Bind to address (server)</td><td><code>sock.bind((host, port))</code></td></tr>
+        <tr><td>Listen for connections</td><td><code>sock.listen(5)</code></td></tr>
+        <tr><td>Accept a client</td><td><code>conn, addr = sock.accept()</code></td></tr>
+        <tr><td>Connect (client)</td><td><code>sock.connect((host, port))</code></td></tr>
+        <tr><td>Send text</td><td><code>sock.sendall("hi".encode())</code></td></tr>
+        <tr><td>Receive up to 1024 bytes</td><td><code>data = sock.recv(1024)</code></td></tr>
+        <tr><td>UDP send / receive</td><td><code>sock.sendto(b"hi", addr)</code> / <code>sock.recvfrom(1024)</code></td></tr>
+        <tr><td>Start a thread</td><td><code>threading.Thread(target=fn, args=(...)).start()</code></td></tr>
+        <tr><td>Close socket</td><td><code>sock.close()</code></td></tr>
+    </table>
+</div>
+
+<h2>10. Post-Lab Questions</h2>
+<div class="box">
+    <ol>
+        <li>Why must data be encoded to bytes before sending over a socket, and decoded on the other side?</li>
+        <li>In the TCP flow, which calls are made only by the server and which only by the client? Why does the client not need <code>bind()</code> or <code>listen()</code>?</li>
+        <li>Why can the single-client server (Task 6) not handle two clients at once, and how does threading solve this?</li>
+        <li>Give one advantage and one disadvantage of UDP compared with TCP, referring to your code in Task 11.</li>
+        <li>Your Python port scanner and Nmap (Lab 05) do a similar job. Name two things Nmap does that your simple scanner does not.</li>
+        <li>From a security standpoint, what did the Wireshark capture in Task 8 demonstrate about plaintext sockets, and how would you protect the data?</li>
+        <li>What is the purpose of <code>settimeout()</code> in the scanner, and what would happen without it?</li>
+    </ol>
+    <div class="answer-area" style="min-height:150px;">Write your answers here...</div>
+</div>
+
+<h2>11. Submission Checklist</h2>
+<div class="box">
+    <ul class="checklist">
+        <li>☐ Your Python source files: <code>basics.py</code>, <code>functions.py</code>, <code>server.py</code>, <code>client.py</code>, <code>threaded_server.py</code>, <code>chat_client.py</code>, <code>udp_server.py</code>, <code>udp_client.py</code>, <code>scanner.py</code>.</li>
+        <li>☐ Screenshot of the TCP echo client/server working (Task 7).</li>
+        <li>☐ Wireshark screenshot showing the port 5000 handshake and your message (Task 8).</li>
+        <li>☐ Screenshot of the threaded server handling multiple clients (Task 10).</li>
+        <li>☐ Screenshot of your Python port scanner output (Task 12).</li>
+        <li>☐ Answers to all Post-Lab Questions (Section 10).</li>
+        <li>☐ Submit as a single PDF plus your <code>.py</code> files, named: <code>StudentID_SE5101_Lab06.pdf</code></li>
+    </ul>
+</div>
+
+<footer>
+    SE5101 - Computer and Network Security &nbsp;|&nbsp; Lab Sheet 06 of the module series &nbsp;|&nbsp; For educational use within an isolated lab environment only.
+</footer>
+
+</body>
+</html>
