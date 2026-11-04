@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Policies, Mechanisms, Assurance</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --surface-tint: #f0eee6;
+    --ink: #1e2430;
+    --ink-soft: #52596a;
+    --ink-faint: #838a9a;
+    --accent: #1d4ed8;
+    --accent-deep: #16389c;
+    --accent-soft: #e3eafc;
+    --accent-line: #b9c9f5;
+    --line: #e1ddd1;
+    --good: #1a7a4c;
+    --warn: #b5730a;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161c;
+      --surface: #1b1e26;
+      --surface-tint: #21242e;
+      --ink: #e9e9ec;
+      --ink-soft: #b3b6c2;
+      --ink-faint: #82869a;
+      --accent: #7d9bff;
+      --accent-deep: #a9bcff;
+      --accent-soft: #232a44;
+      --accent-line: #384372;
+      --line: #2c2f3a;
+      --good: #4fbf8a;
+      --warn: #e0a94a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14161c;
+    --surface: #1b1e26;
+    --surface-tint: #21242e;
+    --ink: #e9e9ec;
+    --ink-soft: #b3b6c2;
+    --ink-faint: #82869a;
+    --accent: #7d9bff;
+    --accent-deep: #a9bcff;
+    --accent-soft: #232a44;
+    --accent-line: #384372;
+    --line: #2c2f3a;
+    --good: #4fbf8a;
+    --warn: #e0a94a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    padding-inline: 20px;
+    padding-block: 40px 64px;
+  }
+
+  h1, h2, h3 {
+    font-family: "Literata", Georgia, "Times New Roman", serif;
+    color: var(--ink);
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin-inline: auto;
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 22px;
+    margin-bottom: 30px;
+  }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 13.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  h1.title {
+    font-size: clamp(32px, 4vw, 46px);
+    font-weight: 600;
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 19px;
+    max-width: 64ch;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 18px;
+    font-size: 14.5px;
+    color: var(--ink-faint);
+    font-family: "JetBrains Mono", "Courier New", monospace;
+  }
+
+  .meta-row span { white-space: nowrap; }
+
+  /* ---------- TOC ---------- */
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 34px;
+  }
+
+  .toc a {
+    text-decoration: none;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* ---------- Framing panel ---------- */
+  .framing {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 40px;
+  }
+
+  .framing p {
+    margin: 0 0 10px;
+    color: var(--ink-soft);
+  }
+  .framing p:last-child { margin-bottom: 0; }
+
+  .framing strong { color: var(--ink); }
+
+  /* ---------- Sections ---------- */
+  section.block {
+    margin-bottom: 46px;
+    scroll-margin-top: 20px;
+  }
+
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+
+  .block-num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 15px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .block-head h2 {
+    font-size: 29px;
+    font-weight: 600;
+  }
+
+  .block-dek {
+    color: var(--ink-soft);
+    font-size: 17px;
+    margin: 8px 0 20px;
+    max-width: 68ch;
+  }
+
+  .block hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 30px 0 0;
+  }
+
+  p { margin: 0 0 14px; max-width: 74ch; }
+
+  .lede {
+    font-size: 19.5px;
+    color: var(--ink);
+  }
+
+  /* ---------- Definition callout ---------- */
+  .definition {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0 20px;
+  }
+
+  .definition .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--accent-deep);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .definition p { margin: 0; color: var(--ink); font-size: 17.5px; }
+
+  /* ---------- Cards / grids ---------- */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 18px 0 22px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .card h4 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+
+  .card p { font-size: 16px; color: var(--ink-soft); margin: 0; }
+
+  .card .tag {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* ---------- Simple list ---------- */
+  ul.plain, ol.plain {
+    margin: 0 0 16px;
+    padding-left: 20px;
+  }
+  ul.plain li, ol.plain li {
+    margin-bottom: 8px;
+    color: var(--ink-soft);
+    max-width: 68ch;
+  }
+  ul.plain li strong, ol.plain li strong { color: var(--ink); }
+
+  /* ---------- Example strip ---------- */
+  .example {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--surface-tint);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 6px 0 18px;
+  }
+  .example .icon {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+  .example p { margin: 0; font-size: 16.5px; color: var(--ink-soft); font-style: italic; }
+
+  /* ---------- Mechanism table ---------- */
+  .mech-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 24px;
+    font-size: 16.5px;
+  }
+  .mech-table-wrap { overflow-x: auto; margin-bottom: 24px; }
+  .mech-table th, .mech-table td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .mech-table th {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .mech-table td { color: var(--ink-soft); }
+  .mech-table td.category {
+    color: var(--ink);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-family: "JetBrains Mono", monospace;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .pill.prevent { background: #dcefe3; color: var(--good); }
+  .pill.detect { background: #fdf0da; color: var(--warn); }
+  .pill.correct { background: var(--accent-soft); color: var(--accent-deep); }
+
+  /* ---------- Chain diagram ---------- */
+  .chain {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 20px 0 26px;
+    flex-wrap: wrap;
+  }
+  .chain-step {
+    flex: 1 1 160px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    min-width: 160px;
+  }
+  .chain-step .k {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .chain-step h4 { margin: 0 0 6px; font-size: 18px; }
+  .chain-step p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .chain-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-faint);
+    font-size: 24px;
+    flex: 0 0 32px;
+  }
+  @media (max-width: 560px) {
+    .chain { flex-direction: column; }
+    .chain-arrow { transform: rotate(90deg); padding: 2px 0; }
+  }
+
+  /* ---------- Takeaway box ---------- */
+  .takeaway {
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 12px;
+    padding: 26px 26px 24px;
+    margin-top: 10px;
+  }
+  .takeaway .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.65;
+    display: block;
+    margin-bottom: 12px;
+  }
+  .takeaway ol {
+    margin: 0 0 16px;
+    padding-left: 20px;
+  }
+  .takeaway ol li { margin-bottom: 8px; opacity: 0.92; }
+  .takeaway .closing {
+    margin: 14px 0 0;
+    opacity: 0.85;
+    font-size: 16.5px;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    padding-top: 14px;
+  }
+
+  /* ---------- Footer ---------- */
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  .next-up {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .next-up strong { color: var(--accent-deep); }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">SE5101 &middot; Computer and Network Security</div>
+    <h1 class="title">Policies, Mechanisms, and Assurance</h1>
+    <p class="subtitle">A study guide covering the three ideas that hold a security program together: what a system is supposed to protect, how it actually protects it, and how anyone proves that protection is real.</p>
+   
+  </div>
+
+  <nav class="toc">
+    <a href="#foundations">Foundations</a>
+    <a href="#policies">Policies</a>
+    <a href="#mechanisms">Mechanisms</a>
+    <a href="#assurance">Assurance</a>
+    <a href="#together">Putting it together</a>
+    <a href="#modern">Modern computing</a>
+    <a href="#takeaways">Takeaways</a>
+  </nav>
+
+  <div class="framing">
+    <p><strong>Why this lecture matters.</strong> Confidentiality, integrity, and availability tell you what security is trying to achieve, but they don't tell you how an organization gets there. This lecture fills that gap with three working parts: a <strong>policy</strong> that states the rule, a <strong>mechanism</strong> that enforces it in software or hardware, and <strong>assurance</strong> that checks the mechanism is actually doing what the policy asked for.</p>
+    <p>Keep one running example in your head as you read: a hospital rule that says only authorized staff can view patient records. Everything below eventually connects back to that single sentence.</p>
+  </div>
+
+  <section class="block" id="foundations">
+    <div class="block-head">
+      <span class="block-num">00</span>
+      <h2>Beyond the CIA triad</h2>
+    </div>
+    <p class="block-dek">Confidentiality, integrity, and availability are the starting point, not the whole picture.</p>
+
+    <p class="lede">Most security courses open with the CIA triad, and this one is no exception, but a real system has to answer for more than those three properties. Three extra qualities show up constantly once you look past the textbook definition:</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Authenticity</h4>
+        <p>Confirming that a message, user, or device is really who it claims to be, not an impostor standing in for them.</p>
+      </div>
+      <div class="card">
+        <h4>Accountability</h4>
+        <p>Making sure every action can be traced back to whoever performed it, through logging and non-repudiation.</p>
+      </div>
+      <div class="card">
+        <h4>Resilience</h4>
+        <p>Keeping the system's protections standing even while it is actively under attack, not just when things are quiet.</p>
+      </div>
+    </div>
+
+    <p>Policies, mechanisms, and assurance are the operational backbone that makes all six of these properties (the original three plus these) more than a wish list. A policy without a mechanism is just a memo. A mechanism without assurance is a guess.</p>
+  </section>
+
+  <section class="block" id="policies">
+    <div class="block-head">
+      <span class="block-num">01</span>
+      <h2>Security policies</h2>
+    </div>
+    <p class="block-dek">The rules that say what the system is supposed to protect, and from whom.</p>
+
+    <div class="definition">
+      <span class="label">Definition</span>
+      <p>A security policy is a formal statement of the rules, goals, and limits a system's protection has to satisfy. It is a model of what "secure" means for this particular organization, expressed as acceptable use, access rights, and responsibilities.</p>
+    </div>
+
+    <p>Policies sit at a high level on purpose. They describe intent, not implementation, which is exactly why the same policy can be enforced very differently on a laptop, a hospital database, and a cloud service. "Only authorized staff can access patient data" is a complete policy sentence, even though it says nothing yet about passwords, encryption, or audit trails.</p>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Three scopes of policy</h3>
+    <ul class="plain">
+      <li><strong>Organizational policies</strong> apply company-wide, things like acceptable use rules and password requirements that every employee follows regardless of role.</li>
+      <li><strong>System-specific policies</strong> are tailored to one system or application, written for the particular risks that system carries.</li>
+      <li><strong>Issue-specific policies</strong> focus on a single area of concern, such as email usage or how encryption gets applied.</li>
+    </ul>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Access control policies</h3>
+    <p>Access control is where most policies become concrete: who is allowed to do what, and under which conditions. Four models cover most of what you'll encounter.</p>
+
+    <div class="mech-table-wrap">
+    <table class="mech-table">
+      <thead>
+        <tr><th>Model</th><th>How access is decided</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="category">DAC</td><td>Discretionary access control. The owner of a resource decides who else gets access to it.</td></tr>
+        <tr><td class="category">MAC</td><td>Mandatory access control. The system enforces a fixed classification scheme, the kind of model used in military and government settings.</td></tr>
+        <tr><td class="category">RBAC</td><td>Role based access control. Access follows the role a person holds in the organization rather than their individual identity.</td></tr>
+        <tr><td class="category">ABAC</td><td>Attribute based access control. Access depends on context such as time of day, location, or how trusted the device is.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>In short, policies define who gets what access, and under which conditions that access holds.</p>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Where policy meets reality</h3>
+    <p>Writing a policy is the easy part. Making it hold up in practice is where most of the difficulty lives:</p>
+    <ul class="plain">
+      <li>Usability and security frequently pull in opposite directions, and a policy that nobody can work with gets quietly ignored.</li>
+      <li>Threats evolve faster than most policy review cycles, so policies drift out of date.</li>
+      <li>Distributed systems and cloud environments make it harder to enforce one policy consistently everywhere it applies.</li>
+      <li>People find workarounds. A policy that is inconvenient enough gets bypassed by the very staff it was written to protect.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="mechanisms">
+    <div class="block-head">
+      <span class="block-num">02</span>
+      <h2>Security mechanisms</h2>
+    </div>
+    <p class="block-dek">The technical tools and processes that turn a policy's intent into something a system actually enforces.</p>
+
+    <div class="definition">
+      <span class="label">Definition</span>
+      <p>A security mechanism is a technical tool or process that enforces a policy. If policy is the "what", mechanism is the "how". Passwords are a mechanism; access control is the policy they enforce.</p>
+    </div>
+
+    <p>Mechanisms fall into three categories depending on when in the attack timeline they act.</p>
+
+    <div class="chain">
+      <div class="chain-step">
+        <span class="k">Before</span>
+        <h4>Preventive</h4>
+        <p>Stops a violation from happening in the first place. Authentication, encryption, and firewalls all work here.</p>
+      </div>
+      <div class="chain-arrow">&rarr;</div>
+      <div class="chain-step">
+        <span class="k">During</span>
+        <h4>Detective</h4>
+        <p>Notices that something has gone wrong while, or shortly after, it happens. Intrusion detection and audit logs live here.</p>
+      </div>
+      <div class="chain-arrow">&rarr;</div>
+      <div class="chain-step">
+        <span class="k">After</span>
+        <h4>Corrective</h4>
+        <p>Restores the system once damage is done. Backups, incident response, and disaster recovery belong here.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Cryptographic foundations</h3>
+    <p>Cryptography underpins nearly every technical mechanism you'll meet in this course, so it's worth knowing the vocabulary now, even before next week's lecture goes deeper.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="tag">Encryption</span>
+        <h4>Symmetric and asymmetric</h4>
+        <p>Symmetric ciphers like AES and ChaCha20 use one shared key. Asymmetric schemes like RSA, ECC, and newer post quantum candidates use a public and private key pair.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Integrity</span>
+        <h4>Hashing and MACs</h4>
+        <p>SHA-3 and HMAC let a system detect whether data was altered, without needing to keep a full copy to compare against.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Authenticity</span>
+        <h4>Digital signatures</h4>
+        <p>ECDSA and EdDSA prove who sent something and stop that person from later denying they sent it.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Emerging</span>
+        <h4>Zero knowledge and homomorphic encryption</h4>
+        <p>Newer techniques that let a system prove a fact, or compute on data, without ever exposing the underlying data itself.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Network security mechanisms</h3>
+    <ul class="plain">
+      <li><strong>Firewalls</strong>: packet filtering with tools like iptables and nftables, or next generation firewalls that inspect packet contents directly.</li>
+      <li><strong>IDS and IPS</strong>: signature based detection, as in Snort and Suricata, alongside newer anomaly based approaches powered by machine learning.</li>
+      <li><strong>TLS and SSL</strong>: encrypted channels between two parties, with mutual authentication when both sides need to verify each other.</li>
+      <li><strong>Zero trust networking</strong>: no connection is trusted by default, access is driven by verified identity every time.</li>
+    </ul>
+
+    <div class="example">
+      <span class="icon">Example</span>
+      <p>Passwords are a mechanism. Access control is the policy. The password itself doesn't decide who should have access, it just enforces whatever the access control policy already decided.</p>
+    </div>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Mechanisms rarely work alone</h3>
+    <p>Real protection almost always layers several mechanisms together, a practice usually called defense in depth. Take the policy "protect sensitive emails": encryption (preventive) keeps the content unreadable in transit, logging (detective) records who opened what, and backups (corrective) let you recover if something still goes wrong. One policy, three mechanisms, three different points in the timeline.</p>
+  </section>
+
+  <section class="block" id="assurance">
+    <div class="block-head">
+      <span class="block-num">03</span>
+      <h2>Assurance</h2>
+    </div>
+    <p class="block-dek">The evidence that a mechanism actually does what its policy promised.</p>
+
+    <div class="definition">
+      <span class="label">Definition</span>
+      <p>Assurance is measurable confidence in policy enforcement and mechanism reliability. It has to answer one blunt question: how do we know this system is secure under realistic threats, not just in theory?</p>
+    </div>
+
+    <p>Assurance operates at three different depths, and a mature security program usually needs all three rather than picking one.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Design assurance</h4>
+        <p>Checking the system was built correctly from the start, up to and including formally verified components like the seL4 kernel.</p>
+      </div>
+      <div class="card">
+        <h4>Operational assurance</h4>
+        <p>Watching the system while it runs, through continuous runtime monitoring rather than a one time check.</p>
+      </div>
+      <div class="card">
+        <h4>Evaluative assurance</h4>
+        <p>Bringing in an outside party to test and certify the system, so the confidence doesn't rest solely on the team that built it.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Assurance techniques</h3>
+    <ul class="plain">
+      <li><strong>Formal verification</strong>: proving correctness mathematically rather than by testing every case.</li>
+      <li><strong>Penetration testing</strong>: running controlled, authorized attacks to find real vulnerabilities before an attacker does.</li>
+      <li><strong>Code review and audits</strong>: checking that secure coding practices were actually followed, not just documented.</li>
+      <li><strong>Security certifications</strong>: independent standards such as ISO 27001 or Common Criteria that give external parties a reason to trust the result.</li>
+    </ul>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Penetration testing and red teaming, in more detail</h3>
+    <p>This deserves its own breakdown because the roles are easy to mix up:</p>
+    <ul class="plain">
+      <li><strong>Pen testing</strong> runs controlled attacks against a system specifically to surface vulnerabilities.</li>
+      <li><strong>Red teams</strong> go further and simulate a persistent, realistic adversary, the kind of behavior seen in advanced persistent threats.</li>
+      <li><strong>Blue teams</strong> are the defenders on the other side, working through logs and alerts to catch what the red team is doing.</li>
+      <li><strong>Purple teaming</strong> puts red and blue teams in the same room, working together instead of in isolation.</li>
+    </ul>
+    <div class="example">
+      <span class="icon">Tools</span>
+      <p>Metasploit, Cobalt Strike, Burp Suite, and Nmap come up constantly in this space, and you'll likely meet at least one of them in a lab later in the course.</p>
+    </div>
+
+    <h3 style="font-size: 19px; margin-bottom: 12px;">Certifications and standards worth recognizing</h3>
+    <div class="mech-table-wrap">
+    <table class="mech-table">
+      <thead>
+        <tr><th>Standard</th><th>What it covers</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="category">ISO/IEC 27001</td><td>An information security management system, the overall framework for running security as an ongoing program.</td></tr>
+        <tr><td class="category">NIST Cybersecurity Framework</td><td>Five functions to organize around: identify, protect, detect, respond, recover.</td></tr>
+        <tr><td class="category">Common Criteria</td><td>A global scale of assurance levels, EAL 1 through EAL 7, used to rate evaluated products.</td></tr>
+        <tr><td class="category">FIPS 140-3</td><td>Validation specifically for cryptographic modules.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="block" id="together">
+    <div class="block-head">
+      <span class="block-num">04</span>
+      <h2>How the three fit together</h2>
+    </div>
+    <p class="block-dek">One sentence of policy, translated all the way down to proof.</p>
+
+    <p>It helps to see the full chain end to end, using a single concrete policy rather than three abstract definitions.</p>
+
+    <div class="chain">
+      <div class="chain-step">
+        <span class="k">Policy</span>
+        <h4>"Only HR can view salaries."</h4>
+        <p>Defines what security is supposed to achieve, in plain organizational language.</p>
+      </div>
+      <div class="chain-arrow">&rarr;</div>
+      <div class="chain-step">
+        <span class="k">Mechanism</span>
+        <h4>Role based access plus authentication</h4>
+        <p>Enforces that rule technically, so the system itself blocks anyone outside HR.</p>
+      </div>
+      <div class="chain-arrow">&rarr;</div>
+      <div class="chain-step">
+        <span class="k">Assurance</span>
+        <h4>Penetration testing plus audits</h4>
+        <p>Proves the mechanism and policy actually hold up when someone tries to break them.</p>
+      </div>
+    </div>
+
+    <p>Notice that each layer depends on the one before it. A brilliant mechanism enforcing the wrong policy is still a failure. A correct policy enforced by a weak mechanism is still a failure. And a strong mechanism nobody has ever tested is just an assumption wearing a uniform.</p>
+  </section>
+
+  <section class="block" id="modern">
+    <div class="block-head">
+      <span class="block-num">05</span>
+      <h2>Assurance in modern computing</h2>
+    </div>
+    <p class="block-dek">The same three ideas, reapplied to cloud, DevOps, and zero trust environments.</p>
+
+    <ul class="plain">
+      <li><strong>Cloud security assurance</strong>: responsibility is shared between provider and customer, backed by provider audits such as SOC 2 and ISO certifications.</li>
+      <li><strong>DevSecOps</strong>: security assurance gets built directly into the CI/CD pipeline instead of being checked at the end.</li>
+      <li><strong>Supply chain assurance</strong>: software bills of materials (SBOMs) and signed builds, so you know exactly what went into a piece of software and that it wasn't tampered with along the way.</li>
+      <li><strong>Zero trust assurance</strong>: continuous authentication and micro-segmentation, so trust is never granted once and forgotten.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="takeaways">
+    <div class="block-head">
+      <span class="block-num">06</span>
+      <h2>Key takeaways</h2>
+    </div>
+
+    <div class="takeaway">
+      <span class="label">Before the next lecture</span>
+      <ol>
+        <li>Policies define what must be protected, stated as intent rather than implementation.</li>
+        <li>Mechanisms implement the technical controls that enforce those policies, split into preventive, detective, and corrective roles.</li>
+        <li>Assurance validates that the controls actually work, through design checks, operational monitoring, and outside evaluation.</li>
+        <li>True resilience is not any single one of these. It needs continuous monitoring, policies that adapt, mechanisms layered in depth, and assurance held to a high standard, all at once.</li>
+      </ol>
+      <p class="closing">Next lecture moves one level deeper into the mechanism layer: cryptography, the mathematics that makes encryption, hashing, and digital signatures possible in the first place.</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>SE5101</span>
+    <span>sachin@foc.sab.ac.lk</span>
+  </div>
+
+</div>
+</body>
+</html>
