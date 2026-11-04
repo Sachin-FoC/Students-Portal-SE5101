@@ -33,20 +33,8 @@ Web Application Security
         ↓
 Web Reconnaissance
         ↓
-Vulnerability Assessment
-        ↓
-Vulnerability Validation
-        ↓
-Risk Assessment
-        ↓
-Security Reporting
-        ↓
 End-to-End Security Assessment
 ```
-
-By the end of the practical program, students should be able to approach a security assessment from **initial reconnaissance through vulnerability identification, validation, risk assessment, remediation, and professional reporting**.
-
----
 
 # 🧪 Practical Sessions
 
