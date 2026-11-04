@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Theory for Cryptography ·(SE5101)</title>
+<style>
+  :root{
+    --bg:#f7f7f7; --card:#ffffff; --ink:#1f1f1f; --muted:#666; --line:#dddddd;
+    --blue:#333; --blue-soft:#f2f2f2; --green:#333; --green-soft:#f2f2f2;
+    --orange:#333; --orange-soft:#f2f2f2; --purple:#333; --purple-soft:#f2f2f2;
+    --pink:#333; --pink-soft:#f2f2f2; --red:#333;
+    --shadow:none;
+  }
+  body.dark{
+    --bg:#161616; --card:#1f1f1f; --ink:#e6e6e6; --muted:#9a9a9a; --line:#333;
+    --blue:#555; --green:#555; --orange:#555; --purple:#555; --pink:#555; --red:#555;
+    --blue-soft:#262626; --green-soft:#262626; --orange-soft:#262626; --purple-soft:#262626; --pink-soft:#262626;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;transition:background .2s,color .2s}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
+
+  /* Header */
+  header.hero{background:var(--card);color:var(--ink);border-bottom:1px solid var(--line);padding:50px 20px 50px;text-align:center}
+  .hero .tag{display:inline-block;color:var(--muted);border:1px solid var(--line);padding:4px 14px;border-radius:99px;font-size:14px;letter-spacing:.5px}
+  .hero h1{font-size:clamp(30px,5vw,46px);margin:14px 0 8px;line-height:1.15}
+  .hero p{max-width:620px;margin:0 auto;opacity:.95}
+  .hero .big{font-size:18px;font-weight:600;margin-top:18px}
+
+  /* Nav */
+  nav{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+  nav .in{max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px;align-items:center}
+  nav a{white-space:nowrap;text-decoration:none;color:var(--muted);font-size:14px;padding:6px 12px;border-radius:99px;background:var(--bg)}
+  nav a:hover{color:var(--blue);background:var(--blue-soft)}
+  #mode{margin-left:auto;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:6px 12px;cursor:pointer;font-size:14px;white-space:nowrap;flex:none}
+
+  /* Roadmap */
+  .roadmap{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:26px auto 10px}
+  .roadmap span{background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:12px;font-weight:600;font-size:15px}
+  .roadmap b{color:var(--muted);align-self:center}
+
+  section{margin-top:46px;scroll-margin-top:70px}
+  .sec-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .num{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-weight:800;color:#fff;font-size:18px}
+  .sec-head h2{margin:0;font-size:26px;line-height:1.2}
+  .sec-head small{display:block;color:var(--muted);font-weight:400;font-size:15px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);margin:14px 0}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .grid .card{margin:0}
+
+  .formula{font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-size:24px;text-align:center;padding:16px;border-radius:12px;margin:12px 0;background:var(--blue-soft);color:var(--ink)}
+  .formula.g{background:var(--green-soft)} .formula.o{background:var(--orange-soft)} .formula.p{background:var(--purple-soft)} .formula.k{background:var(--pink-soft)}
+
+  .plain{border-left:5px solid var(--green);background:var(--green-soft);padding:12px 16px;border-radius:0 12px 12px 0;margin:12px 0}
+  .plain::before{content:"In plain words: ";font-weight:700}
+  .tip{border-left:5px solid var(--orange);background:var(--orange-soft);padding:12px 16px;border-radius:0 12px 12px 0;margin:12px 0}
+  .tip::before{content:"Remember: ";font-weight:700}
+
+  .steps{list-style:none;padding:0;margin:10px 0;counter-reset:s}
+  .steps li{counter-increment:s;position:relative;padding:10px 12px 10px 52px;margin:8px 0;background:var(--bg);border-radius:10px;font-family:Consolas,"Courier New",monospace;font-size:16px}
+  .steps li::before{content:counter(s);position:absolute;left:12px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font:700 14px system-ui}
+  .steps li.ans{background:var(--green-soft);font-weight:700}
+  .steps li.ans::before{content:"=";background:var(--green)}
+  .note{color:var(--muted);font-size:15px}
+
+  h3{margin:4px 0 8px;font-size:19px}
+  .pill{display:inline-block;font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px;margin-bottom:6px}
+  code,.m{font-family:Consolas,"Courier New",monospace;background:var(--bg);padding:1px 6px;border-radius:6px}
+
+  /* Widgets */
+  .widget{border:2px dashed var(--line);border-radius:16px;padding:16px 18px;margin:16px 0;background:var(--card)}
+  .widget .wt{font-weight:700;margin-bottom:10px}
+  .widget .wt::before{content:"Try it: "}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+  .row label{font-size:15px;color:var(--muted)}
+  input[type=number]{width:90px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:var(--bg);color:var(--ink)}
+  button.go{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-size:15px;cursor:pointer;font-weight:600}
+  button.go:hover{filter:brightness(1.1)}
+  .out{font-family:Consolas,"Courier New",monospace;font-size:15px;white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:12px;min-height:44px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:15px;background:var(--bg);color:var(--muted)}
+  .chip.yes{background:var(--ink);color:var(--card)}
+  .chip.no{text-decoration:line-through;opacity:.55}
+  .chip.hit{background:var(--green);color:#fff;box-shadow:0 0 0 3px var(--green-soft)}
+
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:var(--bg);font-size:14px;color:var(--muted)}
+
+  /* Practice */
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;box-shadow:var(--shadow)}
+  summary{cursor:pointer;padding:14px 18px;font-weight:600;list-style:none;display:flex;gap:12px;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary .q{flex:none;background:var(--purple);color:#fff;border-radius:8px;padding:2px 9px;font-size:14px}
+  summary::after{content:"Show answer ";margin-left:auto;font-size:13px;color:var(--blue);white-space:nowrap}
+  details[open] summary::after{content:"Hide answer"}
+  details .a{padding:0 18px 16px 18px;border-top:1px dashed var(--line);padding-top:12px}
+
+  .summary-list{list-style:none;padding:0}
+  .summary-list li{padding:12px 14px 12px 46px;position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;margin:8px 0}
+  .summary-list li::before{content:"•";position:absolute;left:16px;color:var(--green);font-weight:900}
+
+  footer{text-align:center;color:var(--muted);font-size:14px;margin-top:50px}
+  sup{font-size:.7em}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="tag">SE5101 · Computer and Network Security</span>
+  <h1>Number Theory for Cryptography</h1>
+  <p>Maths behind RSA, digital signatures and key exchange.</p>
+  <div class="big">Core idea: security comes from maths problems that are easy one way but very hard to reverse.</div>
+</header>
+
+<nav><div class="in">
+  <a href="#gcd">GCD</a><a href="#euclid">Euclid</a><a href="#mod">Modulo</a><a href="#inv">Inverses</a>
+  <a href="#phi">Totient φ(n)</a><a href="#fermat">Fermat</a><a href="#euler">Euler</a><a href="#rsa">RSA link</a>
+  <a href="#practice">Practice</a><a href="#summary">Summary</a>
+  <button id="mode" onclick="document.body.classList.toggle('dark')">Dark mode</button>
+</div></nav>
+
+<div class="wrap">
+
+  <div class="roadmap">
+    <span>GCD</span><b>→</b><span>Euclid</span><b>→</b><span>mod n</span><b>→</b><span>Inverses</span><b>→</b><span>φ(n)</span><b>→</b><span>Fermat &amp; Euler</span><b>→</b><span>RSA</span>
+  </div>
+
+  <div class="card">
+    <h3>What you will learn</h3>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div>Find the GCD with the Euclidean algorithm</div>
+      <div>Work with modular arithmetic</div>
+      <div>Find inverses under a modulus</div>
+      <div>Calculate Euler's totient φ(n)</div>
+      <div>Understand Fermat's &amp; Euler's theorems</div>
+    </div>
+  </div>
+
+  <!-- 1 GCD -->
+  <section id="gcd">
+    <div class="sec-head"><div class="num" style="background:var(--blue)">1</div>
+      <h2>Divisibility &amp; GCD<small>The basic words we use everywhere</small></h2></div>
+
+    <div class="grid">
+      <div class="card"><span class="pill" style="background:var(--blue-soft);color:var(--blue)">Divides</span>
+        <h3>a | b</h3>“a divides b” means <b>b = a × k</b> for some whole number k.<br><span class="note">Example: 3 | 12 because 12 = 3 × 4</span></div>
+      <div class="card"><span class="pill" style="background:var(--purple-soft);color:var(--purple)">GCD</span>
+        <h3>gcd(a, b)</h3>The <b>largest</b> number that divides <b>both</b> a and b.<br><span class="note">Example: gcd(18, 30) = 6</span></div>
+      <div class="card"><span class="pill" style="background:var(--green-soft);color:var(--green)">Coprime</span>
+        <h3>gcd(a, b) = 1</h3>a and b share no common factor except 1.<br><span class="note">Example: gcd(17, 23) = 1 → coprime</span></div>
+    </div>
+    <div class="tip">“Coprime” (also called <i>relatively prime</i>) is the most important word in this lecture. Almost every rule below starts with “if gcd(a, n) = 1…”.</div>
+  </section>
+
+  <!-- 2 Euclid -->
+  <section id="euclid">
+    <div class="sec-head"><div class="num" style="background:var(--purple)">2</div>
+      <h2>The Euclidean Algorithm<small>A fast way to find the GCD, without factoring</small></h2></div>
+
+    <div class="formula p">gcd(a, b) = gcd(b, a mod b)</div>
+    <div class="plain">Divide the big number by the small one and keep the remainder. Swap, and repeat. When the remainder becomes <b>0</b>, the last non-zero remainder is the GCD.</div>
+
+    <div class="card">
+      <h3>Example: gcd(252, 105)</h3>
+      <ol class="steps">
+        <li>252 = 105 × 2 + <b>42</b></li>
+        <li>105 = 42 × 2 + <b>21</b></li>
+        <li>42 = 21 × 2 + <b>0</b> &nbsp;← remainder 0, stop</li>
+        <li class="ans">gcd(252, 105) = 21</li>
+      </ol>
+      <p class="note">Why it matters: factoring huge numbers is very slow, but Euclid's method is fast even for numbers with hundreds of digits.</p>
+    </div>
+
+    <div class="widget">
+      <div class="wt">Euclidean algorithm step by step</div>
+      <div class="row"><label>a</label><input type="number" id="ea" value="252" min="1"><label>b</label><input type="number" id="eb" value="105" min="1"><button class="go" onclick="euclid()">Find GCD</button></div>
+      <div class="out" id="eout"></div>
+    </div>
+  </section>
+
+  <!-- 3 Mod -->
+  <section id="mod">
+    <div class="sec-head"><div class="num" style="background:var(--orange)">3</div>
+      <h2>Modular Arithmetic<small>“Clock maths”: only the remainder matters</small></h2></div>
+
+    <div class="grid">
+      <div class="card"><h3>a mod n</h3>The <b>remainder</b> when a is divided by n.<br><span class="note">17 mod 5 = 2 &nbsp;(17 = 3×5 + 2)</span></div>
+      <div class="card"><h3>a ≡ b (mod n)</h3>“a is congruent to b” = they give the <b>same remainder</b> when divided by n.<br><span class="note">17 ≡ 2 (mod 5)</span></div>
+    </div>
+    <div class="plain">Think of a clock with n hours. After reaching n−1, you go back to 0. On a 12-hour clock, 15 o'clock is the same as 3, so 15 ≡ 3 (mod 12).</div>
+    <div class="tip">You can take “mod n” at any step and the final answer stays the same. That keeps numbers small in RSA.</div>
+  </section>
+
+  <!-- 4 Inverses -->
+  <section id="inv">
+    <div class="sec-head"><div class="num" style="background:var(--pink)">4</div>
+      <h2>Additive &amp; Multiplicative Inverses<small>How to “undo” + and × under mod</small></h2></div>
+
+    <div class="grid">
+      <div class="card"><span class="pill" style="background:var(--orange-soft);color:var(--orange)">Additive inverse</span>
+        <div class="formula o" style="font-size:20px">(a + b) mod n = 0</div>
+        The answer is simply <b>b = n − a</b>.<br><span class="note">Inverse of 4 mod 10 is 6, since 4 + 6 = 10 ≡ 0</span><br>Always exists.</div>
+      <div class="card"><span class="pill" style="background:var(--pink-soft);color:var(--pink)">Multiplicative inverse</span>
+        <div class="formula k" style="font-size:20px">(a × x) mod n = 1</div>
+        Written <b>a<sup>−1</sup></b>.<br>Exists <b>only if gcd(a, n) = 1</b>.<br><span class="note">4 has no inverse mod 10 (gcd = 2)</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Example: find the inverse of 3 mod 7</h3>
+      <p>Just try x = 1, 2, 3, … until (3 × x) mod 7 = 1:</p>
+      <table>
+        <tr><th>x</th><th>3 × x</th><th>mod 7</th></tr>
+        <tr><td>1</td><td>3</td><td>3</td></tr>
+        <tr><td>2</td><td>6</td><td>6</td></tr>
+        <tr><td>3</td><td>9</td><td>2</td></tr>
+        <tr><td>4</td><td>12</td><td>5</td></tr>
+        <tr style="font-weight:700"><td>5</td><td>15</td><td>1 ✓</td></tr>
+      </table>
+      <div class="formula g">3<sup>−1</sup> ≡ 5 (mod 7)</div>
+      <p class="note">Trying every number works for small n. For the huge numbers in RSA, we use the <b>Extended Euclidean Algorithm</b>, which finds the inverse quickly.</p>
+    </div>
+
+    <div class="widget">
+      <div class="wt">Find inverses of a mod n</div>
+      <div class="row"><label>a</label><input type="number" id="ia" value="3" min="1"><label>n</label><input type="number" id="in" value="7" min="2"><button class="go" onclick="inverse()">Find</button></div>
+      <div class="out" id="iout"></div>
+    </div>
+  </section>
+
+  <!-- 5 Totient -->
+  <section id="phi">
+    <div class="sec-head"><div class="num" style="background:var(--green)">5</div>
+      <h2>Euler's Totient Function φ(n)<small>“How many numbers below n are coprime with n?”</small></h2></div>
+
+    <div class="plain">φ(n) counts how many numbers from 1 up to n have <b>no common factor</b> with n (except 1).</div>
+    <div class="card"><b>Example:</b> φ(5) = 4, because 1, 2, 3, 4 are all coprime with 5.<br>
+      <b>Example:</b> φ(10) = 4, because only 1, 3, 7, 9 are coprime with 10.</div>
+
+    <h3 style="margin-top:20px">Three shortcut formulas</h3>
+    <div class="grid">
+      <div class="card"><span class="pill" style="background:var(--green-soft);color:var(--green)">n is prime p</span>
+        <div class="formula g" style="font-size:21px">φ(p) = p − 1</div><span class="note">φ(7) = 6</span></div>
+      <div class="card"><span class="pill" style="background:var(--blue-soft);color:var(--blue)">n = p × q (two primes)</span>
+        <div class="formula" style="font-size:21px">φ(n) = (p−1)(q−1)</div><span class="note">φ(15) = 2 × 4 = 8 &nbsp;(used in RSA)</span></div>
+      <div class="card"><span class="pill" style="background:var(--purple-soft);color:var(--purple)">n = p<sup>k</sup> (prime power)</span>
+        <div class="formula p" style="font-size:21px">φ(p<sup>k</sup>) = p<sup>k</sup> − p<sup>k−1</sup></div><span class="note">φ(9) = 9 − 3 = 6</span></div>
+    </div>
+
+    <div class="widget">
+      <div class="wt">See which numbers are coprime with n</div>
+      <div class="row"><label>n</label><input type="number" id="pn" value="10" min="2" max="120"><button class="go" onclick="totient()">Show φ(n)</button></div>
+      <div class="chips" id="pchips"></div>
+      <div class="out" id="pout" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- 6 Fermat -->
+  <section id="fermat">
+    <div class="sec-head"><div class="num" style="background:var(--orange)">6</div>
+      <h2>Fermat's Little Theorem<small>A shortcut for powers when the modulus is prime</small></h2></div>
+
+    <div class="card">If <b>p is prime</b> and <b>gcd(a, p) = 1</b> (a is not divisible by p), then:
+      <div class="formula o">a<sup>p−1</sup> ≡ 1 (mod p) &nbsp;&nbsp;i.e.&nbsp;&nbsp; a<sup>p−1</sup> mod p = 1</div>
+    </div>
+    <div class="plain">Raise a to the power p − 1, divide by p, and the remainder is <b>always 1</b>.</div>
+
+    <div class="card">
+      <h3>Example: p = 7, a = 3</h3>
+      <ol class="steps">
+        <li>7 is prime ✓ and gcd(3, 7) = 1 ✓</li>
+        <li>3<sup>7−1</sup> = 3<sup>6</sup> = 729</li>
+        <li>729 mod 7 = 1 &nbsp;(729 = 104 × 7 + 1)</li>
+        <li class="ans">3<sup>6</sup> ≡ 1 (mod 7)</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 7 Euler -->
+  <section id="euler">
+    <div class="sec-head"><div class="num" style="background:var(--blue)">7</div>
+      <h2>Euler's Theorem<small>Fermat's idea for any n (prime or not)</small></h2></div>
+
+    <div class="card">For any integer n &gt; 1, if <b>gcd(a, n) = 1</b>, then:
+      <div class="formula">a<sup>φ(n)</sup> ≡ 1 (mod n) &nbsp;&nbsp;i.e.&nbsp;&nbsp; a<sup>φ(n)</sup> mod n = 1</div>
+    </div>
+    <div class="plain">If a and n are coprime and you raise a to the power φ(n), the remainder when dividing by n is <b>always 1</b>.</div>
+
+    <div class="card">
+      <h3>Step by step: a = 3, n = 10</h3>
+      <ol class="steps">
+        <li>Check coprime: gcd(3, 10) = 1 ✓ so the theorem applies</li>
+        <li>Find φ(10): coprimes are 1, 3, 7, 9 → φ(10) = 4</li>
+        <li>Raise a to φ(n): 3<sup>4</sup> = 81</li>
+        <li>Take mod n: 81 mod 10 = 1</li>
+        <li class="ans">3<sup>4</sup> ≡ 1 (mod 10)</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Practical example: 7<sup>4</sup> mod 10</h3>
+      φ(10) = 4 and gcd(7, 10) = 1, so Euler says the answer is 1.<br>
+      Check: 7<sup>4</sup> = 2401, and 2401 mod 10 = <b>1</b> ✓
+      <p class="note">These properties make <b>modular exponentiation</b> (big powers under mod) practical in encryption.</p>
+    </div>
+
+    <div class="card" style="border:1px solid var(--ink)">
+      <h3>Fermat vs Euler: how they connect</h3>
+      <p>Fermat is just a <b>special case</b> of Euler. When n = p is prime, φ(p) = p − 1, so Euler's a<sup>φ(n)</sup> ≡ 1 becomes Fermat's a<sup>p−1</sup> ≡ 1.</p>
+      <table>
+        <tr><th></th><th>Fermat</th><th>Euler</th></tr>
+        <tr><td>Modulus</td><td>p must be <b>prime</b></td><td>any n &gt; 1</td></tr>
+        <tr><td>Condition</td><td>gcd(a, p) = 1</td><td>gcd(a, n) = 1</td></tr>
+        <tr><td>Result</td><td>a<sup>p−1</sup> ≡ 1 (mod p)</td><td>a<sup>φ(n)</sup> ≡ 1 (mod n)</td></tr>
+      </table>
+    </div>
+
+    <div class="widget">
+      <div class="wt">Check a<sup>k</sup> mod n</div>
+      <div class="row"><label>a</label><input type="number" id="xa" value="3" min="1"><label>power k</label><input type="number" id="xk" value="4" min="0"><label>n</label><input type="number" id="xn" value="10" min="2"><button class="go" onclick="powmod()">Compute</button></div>
+      <div class="out" id="xout"></div>
+      <p class="note">Tip: try a=3, k=6, n=7 (Fermat) or a=7, k=4, n=10 (Euler).</p>
+    </div>
+  </section>
+
+  <!-- 8 RSA -->
+  <section id="rsa">
+    <div class="sec-head"><div class="num" style="background:var(--pink)">8</div>
+      <h2>Why This Matters for RSA<small>Putting all the pieces together</small></h2></div>
+
+    <div class="grid">
+      <div class="card"><h3>Key setup</h3>
+        1. Pick two primes p, q<br>2. n = p × q<br>3. φ(n) = (p−1)(q−1)<br>4. Pick e and d so that<br>
+        <div class="formula k" style="font-size:19px">e · d ≡ 1 (mod φ(n))</div>
+        <span class="note">So d is the multiplicative inverse of e (needs gcd(e, φ(n)) = 1).</span></div>
+      <div class="card"><h3>Encrypt / Decrypt</h3>
+        Encrypt: <b>C = M<sup>e</sup> mod n</b><br>Decrypt: <b>M = C<sup>d</sup> mod n</b><br><br>
+        C<sup>d</sup> = (M<sup>e</sup>)<sup>d</sup> = M<sup>e·d</sup> mod n<br>
+        <span class="note">Euler's theorem guarantees this gives back the original M.</span></div>
+    </div>
+
+    <table class="card" style="padding:0;overflow:hidden">
+      <tr><th>Tool you learned</th><th>Where RSA uses it</th></tr>
+      <tr><td>GCD / Euclid</td><td>Checking gcd(e, φ(n)) = 1</td></tr>
+      <tr><td>Multiplicative inverse</td><td>Computing the private key d = e<sup>−1</sup> mod φ(n)</td></tr>
+      <tr><td>Totient φ(n)</td><td>φ(n) = (p−1)(q−1), easy only if you know p and q (that is the secret)</td></tr>
+      <tr><td>Fermat &amp; Euler</td><td>Prove decryption works; reduce large powers</td></tr>
+    </table>
+    <div class="tip">These tools are also the basis of <b>key generation</b>, <b>modular inverse computations</b> and <b>digital signature</b> algorithms.</div>
+  </section>
+
+  <!-- Practice -->
+  <section id="practice">
+    <div class="sec-head"><div class="num" style="background:var(--purple)">9</div>
+      <h2>Practice Questions<small>Try by hand first, then open the answer</small></h2></div>
+
+    <details><summary><span class="q">Q1</span>Find gcd(48, 18) using the Euclidean algorithm.</summary>
+      <div class="a">48 = 18 × 2 + 12 → 18 = 12 × 1 + 6 → 12 = 6 × 2 + 0. &nbsp;<b>gcd = 6</b></div></details>
+
+    <details><summary><span class="q">Q2</span>Is 14 and 25 coprime?</summary>
+      <div class="a">14 = 2 × 7, 25 = 5 × 5. No common factor → gcd(14, 25) = 1. <b>Yes, coprime.</b></div></details>
+
+    <details><summary><span class="q">Q3</span>Find the additive and multiplicative inverse of 4 mod 9.</summary>
+      <div class="a">Additive: 9 − 4 = <b>5</b> (4 + 5 = 9 ≡ 0).<br>Multiplicative: gcd(4, 9) = 1 so it exists. 4 × 7 = 28 = 3 × 9 + 1 → <b>4<sup>−1</sup> ≡ 7 (mod 9)</b></div></details>
+
+    <details><summary><span class="q">Q4</span>Does 6 have a multiplicative inverse mod 9? Why?</summary>
+      <div class="a"><b>No.</b> gcd(6, 9) = 3 ≠ 1, so no inverse exists.</div></details>
+
+    <details><summary><span class="q">Q5</span>Find φ(7), φ(15) and φ(9).</summary>
+      <div class="a">φ(7) = 7 − 1 = <b>6</b> (prime)<br>φ(15) = (3−1)(5−1) = <b>8</b> (15 = 3 × 5)<br>φ(9) = 9 − 3 = <b>6</b> (9 = 3²)</div></details>
+
+    <details><summary><span class="q">Q6</span>Use Fermat's theorem to find 2<sup>6</sup> mod 7.</summary>
+      <div class="a">7 is prime and gcd(2, 7) = 1, so 2<sup>7−1</sup> ≡ 1. <b>Answer: 1</b> (check: 64 = 9 × 7 + 1)</div></details>
+
+    <details><summary><span class="q">Q7</span>Use Euler's theorem to find 3<sup>4</sup> mod 8.</summary>
+      <div class="a">φ(8) = 8 − 4 = 4 and gcd(3, 8) = 1, so 3<sup>4</sup> ≡ 1. <b>Answer: 1</b> (check: 81 = 10 × 8 + 1)</div></details>
+
+    <details><summary><span class="q">Q8</span>What is the last digit of 3<sup>100</sup>?</summary>
+      <div class="a">Last digit = value mod 10. φ(10) = 4 and 100 = 25 × 4, so 3<sup>100</sup> = (3<sup>4</sup>)<sup>25</sup> ≡ 1<sup>25</sup> = 1. <b>Last digit is 1.</b></div></details>
+
+    <details><summary><span class="q">Q9</span>Mini RSA: p = 3, q = 11, e = 3. Find n, φ(n) and d.</summary>
+      <div class="a">n = 3 × 11 = <b>33</b><br>φ(n) = 2 × 10 = <b>20</b><br>Need 3 × d ≡ 1 (mod 20): 3 × 7 = 21 ≡ 1 → <b>d = 7</b><br>
+      <span class="note">Bonus: encrypt M = 4 → C = 4³ mod 33 = 64 mod 33 = 31. Decrypt → 31⁷ mod 33 = 4 ✓ (check with the power widget above)</span></div></details>
+  </section>
+
+  <!-- Summary -->
+  <section id="summary">
+    <div class="sec-head"><div class="num" style="background:var(--green)">10</div>
+      <h2>Summary<small>One-line memory card for each topic</small></h2></div>
+    <ul class="summary-list">
+      <li><b>GCD:</b> largest number dividing both. gcd = 1 means <b>coprime</b>.</li>
+      <li><b>Euclidean algorithm:</b> gcd(a, b) = gcd(b, a mod b), repeat until remainder 0.</li>
+      <li><b>Modular arithmetic:</b> a mod n is the remainder; a ≡ b (mod n) means same remainder.</li>
+      <li><b>Additive inverse:</b> b = n − a. <b>Multiplicative inverse:</b> (a × x) mod n = 1, only when gcd(a, n) = 1.</li>
+      <li><b>Totient:</b> φ(p) = p − 1 &nbsp;·&nbsp; φ(pq) = (p−1)(q−1) &nbsp;·&nbsp; φ(p<sup>k</sup>) = p<sup>k</sup> − p<sup>k−1</sup></li>
+      <li><b>Fermat:</b> a<sup>p−1</sup> ≡ 1 (mod p), p prime. <b>Euler:</b> a<sup>φ(n)</sup> ≡ 1 (mod n). Fermat is a special case of Euler.</li>
+      <li><b>RSA:</b> n = pq, φ(n) = (p−1)(q−1), e·d ≡ 1 (mod φ(n)), C = M<sup>e</sup> mod n, M = C<sup>d</sup> mod n.</li>
+    </ul>
+
+    <div class="card">
+      <h3>References</h3>
+      William Stallings, <i>Cryptography and Network Security</i><br>
+      Behrouz A. Forouzan, <i>Cryptography and Network Security</i><br>
+      mathworld.wolfram.com
+    </div>
+  </section>
+
+  <footer>SE5101 · Computer and Network Security · Mathematical Foundations for Cryptography<br>Sachin Tharaka · sachin@foc.sab.ac.lk</footer>
+</div>
+
+<script>
+function gcd(a,b){while(b){[a,b]=[b,a%b]}return a}
+function v(id){return parseInt(document.getElementById(id).value,10)}
+
+function euclid(){
+  let a=v('ea'), b=v('eb'), out=document.getElementById('eout');
+  if(!(a>0&&b>0)){out.textContent='Enter two positive numbers.';return}
+  if(a<b)[a,b]=[b,a];
+  const A=a,B=b; let s='', i=1;
+  while(b){const q=Math.floor(a/b), r=a%b; s+=`Step ${i++}:  ${a} = ${b} × ${q} + ${r}${r===0?'   ← remainder 0, stop':''}\n`; a=b;b=r}
+  s+=`\n✓ gcd(${A}, ${B}) = ${a}` + (a===1?'   → they are coprime!':'');
+  out.textContent=s;
+}
+
+function inverse(){
+  const a=v('ia'), n=v('in'), out=document.getElementById('iout');
+  if(!(a>0&&n>1)){out.textContent='Enter a ≥ 1 and n ≥ 2.';return}
+  const am=a%n, add=(n-am)%n, g=gcd(a,n);
+  let s=`Additive inverse: ${n} − ${am} = ${add}   (check: ${a} + ${add} = ${a+add} ≡ 0 mod ${n})\n\n`;
+  if(g!==1){s+=`Multiplicative inverse: ✗ none, because gcd(${a}, ${n}) = ${g} ≠ 1`;}
+  else{
+    let x=1; const lim=Math.min(n,25);
+    s+='Trying x = 1, 2, 3, …\n';
+    for(;x<n;x++){const r=(a*x)%n; if(x<=lim) s+=`  ${a} × ${x} = ${a*x} → mod ${n} = ${r}${r===1?'  ✓':''}\n`; if(r===1)break;}
+    if(x>lim) s+=`  … (skipped) …\n  ${a} × ${x} = ${a*x} → mod ${n} = 1  ✓\n`;
+    s+=`\n✓ ${a}⁻¹ ≡ ${x} (mod ${n})`;
+  }
+  out.textContent=s;
+}
+
+function totient(){
+  let n=v('pn'); const box=document.getElementById('pchips'), out=document.getElementById('pout');
+  if(!(n>=2)){out.textContent='Enter n ≥ 2';return}
+  if(n>120){n=120;document.getElementById('pn').value=120}
+  box.innerHTML=''; const list=[];
+  for(let i=1;i<=n;i++){const d=document.createElement('div'); const ok=gcd(i,n)===1; d.className='chip '+(ok?'yes':'no'); d.textContent=i; box.appendChild(d); if(ok)list.push(i)}
+  // factorisation
+  let m=n,f=[];for(let p=2;p*p<=m;p++){let k=0;while(m%p===0){m/=p;k++}if(k)f.push([p,k])}if(m>1)f.push([m,1]);
+  let hint='';
+  if(f.length===1&&f[0][1]===1) hint=`${n} is prime → φ(${n}) = ${n} − 1 = ${n-1}`;
+  else if(f.length===1) {const [p,k]=f[0]; hint=`${n} = ${p}^${k} → φ = ${n} − ${n/p} = ${n-n/p}`;}
+  else if(f.length===2&&f[0][1]===1&&f[1][1]===1) hint=`${n} = ${f[0][0]} × ${f[1][0]} → φ = (${f[0][0]}−1)(${f[1][0]}−1) = ${(f[0][0]-1)*(f[1][0]-1)}`;
+  else hint=`${n} = ${f.map(([p,k])=>k>1?p+'^'+k:p).join(' × ')}`;
+  out.textContent=`Green numbers are coprime with ${n}.\nφ(${n}) = ${list.length}\nFormula check: ${hint}`;
+}
+
+function powmod(){
+  const a=v('xa'), k=v('xk'), n=v('xn'), out=document.getElementById('xout');
+  if(!(a>0&&k>=0&&n>1)){out.textContent='Enter a ≥ 1, k ≥ 0, n ≥ 2.';return}
+  let r=1n, base=BigInt(a)%BigInt(n), e=BigInt(k), N=BigInt(n);
+  while(e>0n){if(e&1n)r=r*base%N; base=base*base%N; e>>=1n}
+  let s='';
+  const full=BigInt(a)**BigInt(Math.min(k,400));
+  if(k<=400){const fs=full.toString(); s+=`${a}^${k} = ${fs.length>60?fs.slice(0,30)+'…'+fs.slice(-10)+' ('+fs.length+' digits)':fs}\n`;}
+  s+=`${a}^${k} mod ${n} = ${r}`;
+  const g=gcd(a,n);
+  let phiN=0;for(let i=1;i<=n;i++)if(gcd(i,n)===1)phiN++;
+  if(g===1&&k===phiN) s+=`\n\n✓ k = φ(${n}) = ${phiN} and gcd(${a}, ${n}) = 1, so Euler's theorem says the answer is 1.`;
+  else if(g!==1) s+=`\n\nNote: gcd(${a}, ${n}) = ${g}, so Fermat/Euler do not apply here.`;
+  out.textContent=s;
+}
+euclid(); inverse(); totient(); powmod();
+</script>
+</body>
+</html>

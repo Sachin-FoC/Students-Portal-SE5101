@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Public Key Cryptography</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --surface-tint: #f0eee6;
+    --ink: #1e2430;
+    --ink-soft: #52596a;
+    --ink-faint: #838a9a;
+    --accent: #1d4ed8;
+    --accent-deep: #16389c;
+    --accent-soft: #e3eafc;
+    --accent-line: #b9c9f5;
+    --line: #e1ddd1;
+    --good: #1a7a4c;
+    --good-soft: #dcefe3;
+    --warn: #b5730a;
+    --warn-soft: #fdf0da;
+    --bad: #b3261e;
+    --bad-soft: #fbe2e0;
+    --violet: #6d3fc0;
+    --violet-soft: #ece4fa;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161c;
+    --surface: #1b1e26;
+    --surface-tint: #21242e;
+    --ink: #e9e9ec;
+    --ink-soft: #b3b6c2;
+    --ink-faint: #82869a;
+    --accent: #7d9bff;
+    --accent-deep: #a9bcff;
+    --accent-soft: #232a44;
+    --accent-line: #384372;
+    --line: #2c2f3a;
+    --good: #4fbf8a;
+    --good-soft: #16311f;
+    --warn: #e0a94a;
+    --warn-soft: #35270f;
+    --bad: #e97b73;
+    --bad-soft: #3a1917;
+    --violet: #b79bf0;
+    --violet-soft: #2b2140;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 18px; line-height: 1.65; margin: 0;
+    padding-inline: 20px; padding-block: 12px 70px;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  h1, h2, h3 { font-family: "Literata", Georgia, serif; color: var(--ink); text-wrap: balance; margin: 0; }
+  .wrap { max-width: 940px; margin-inline: auto; }
+  code, .mono { font-family: "JetBrains Mono", "Courier New", monospace; }
+  sub, sup { font-size: 0.72em; }
+
+  /* ---------- Theme toggle ---------- */
+  .theme-toggle {
+    position: fixed; top: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 30px; padding: 6px 14px 6px 6px;
+    cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink-soft); user-select: none;
+  }
+  .theme-toggle .knob { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; transition: transform 0.4s ease; }
+  .theme-toggle .knob svg { width: 15px; height: 15px; }
+  [data-theme="dark"] .theme-toggle .knob { transform: rotate(180deg); }
+  .theme-toggle .icon-sun { color: var(--warn); display: block; }
+  .theme-toggle .icon-moon { color: var(--accent); display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: block; }
+
+  .progress-track { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 55; }
+  .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-deep)); }
+
+  .reveal { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead { border-bottom: 2px solid var(--ink); padding: 30px 0 22px; margin-bottom: 30px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 13.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--accent); display: inline-block; }
+  h1.title { font-size: clamp(32px, 4vw, 46px); font-weight: 600; line-height: 1.15; margin-bottom: 10px; max-width: 20ch; }
+  .subtitle { color: var(--ink-soft); font-size: 19px; max-width: 64ch; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 34px; position: sticky; top: 10px; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); padding: 8px 0; }
+  .toc a { text-decoration: none; color: var(--accent-deep); background: var(--accent-soft); border: 1px solid var(--accent-line); padding: 6px 12px; border-radius: 20px; font-size: 15px; font-weight: 600; transition: background 0.2s ease, transform 0.2s ease; }
+  .toc a:hover { background: var(--accent); color: #fff; transform: translateY(-1px); }
+  .toc a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .framing { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 40px; }
+  .framing p { margin: 0 0 10px; color: var(--ink-soft); }
+  .framing p:last-child { margin-bottom: 0; }
+  .framing strong { color: var(--ink); }
+
+  section.block { margin-bottom: 54px; scroll-margin-top: 60px; }
+  .block-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+  .block-num { font-family: "JetBrains Mono", monospace; font-size: 15px; color: var(--accent); font-weight: 700; }
+  .block-head h2 { font-size: 29px; font-weight: 600; }
+  .block-dek { color: var(--ink-soft); font-size: 17px; margin: 8px 0 20px; max-width: 68ch; }
+  p { margin: 0 0 14px; max-width: 74ch; }
+  .lede { font-size: 19.5px; }
+  h3.sub { font-size: 19px; margin: 30px 0 12px; }
+  h4.mini { font-size: 16px; margin: 18px 0 8px; }
+  .caption { font-size: 14.5px; color: var(--ink-faint); text-align: center; margin-top: -2px; max-width: none; }
+
+  .definition { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0 20px; }
+  .definition .label { font-family: "JetBrains Mono", monospace; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-deep); display: block; margin-bottom: 6px; }
+  .definition p { margin: 0; font-size: 17.5px; }
+  .definition p + p { margin-top: 6px; }
+  .definition.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .definition.warn .label { color: var(--warn); }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); border-color: var(--accent-line); }
+  .card h4 { font-size: 17px; font-weight: 700; margin: 0 0 6px; font-family: "Literata", serif; }
+  .card p { font-size: 15.5px; color: var(--ink-soft); margin: 0; }
+  .card .num { font-family: "JetBrains Mono", monospace; font-size: 22px; color: var(--accent); font-weight: 700; display: block; margin-bottom: 6px; }
+  .card .tag { display: inline-block; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--accent-deep); background: var(--accent-soft); padding: 2px 8px; border-radius: 12px; margin-bottom: 8px; }
+
+  ul.plain { margin: 0 0 16px; padding-left: 20px; }
+  ul.plain li { margin-bottom: 8px; color: var(--ink-soft); max-width: 68ch; }
+  ul.plain li strong { color: var(--ink); }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 10px; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .data-table th, .data-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .data-table th { font-family: "JetBrains Mono", monospace; font-size: 12.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; background: var(--surface-tint); }
+  .data-table tbody tr:hover { background: var(--accent-soft); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table td { color: var(--ink-soft); }
+  .data-table td.category { color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+  .flow-strip { display: flex; align-items: stretch; margin: 20px 0 8px; flex-wrap: wrap; }
+  .flow-step { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 140px; }
+  .flow-step .k { font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 5px; }
+  .flow-step h4 { margin: 0 0 5px; font-size: 15.5px; font-family: "Literata", serif; }
+  .flow-step p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .flow-arrow { display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 18px; flex: 0 0 30px; }
+  @media (max-width: 700px) { .flow-strip { flex-direction: column; } .flow-arrow { transform: rotate(90deg); padding: 6px 0; } }
+
+  /* ---------- Shared widget chrome ---------- */
+  .widget { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin: 22px 0 12px; }
+  .widget-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .widget-title { font-family: "JetBrains Mono", monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fbtn { font-family: "JetBrains Mono", monospace; font-size: 13px; font-weight: 600; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent-deep); padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; }
+  .fbtn:hover { background: var(--accent); color: #fff; }
+  .fbtn:active { transform: scale(0.96); }
+  .fbtn.primary { background: var(--accent); color: #fff; }
+  .fbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .step-caption { font-size: 15.5px; color: var(--ink-soft); background: var(--surface-tint); border-radius: 8px; padding: 12px 16px; margin-top: 16px; min-height: 52px; }
+  .step-caption strong { color: var(--ink); }
+
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 18px; margin-bottom: 18px; }
+  .ctrl label { display: block; font-family: "JetBrains Mono", monospace; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 5px; }
+  .ctrl select, .ctrl input[type="number"], .ctrl input[type="text"], textarea.msg {
+    width: 100%; font-family: "JetBrains Mono", monospace; font-size: 15px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--surface-tint); color: var(--ink);
+  }
+  .ctrl input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .ctrl .val { font-family: "JetBrains Mono", monospace; color: var(--accent); font-weight: 700; }
+
+  .calc-lines { display: flex; flex-direction: column; gap: 8px; }
+  .calc-line { display: flex; align-items: baseline; gap: 12px; padding: 9px 14px; border-radius: 8px; background: var(--surface-tint); font-family: "JetBrains Mono", monospace; font-size: 14.5px; flex-wrap: wrap; }
+  .calc-line .lbl { color: var(--ink-faint); min-width: 170px; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .calc-line .expr { color: var(--ink-soft); }
+  .calc-line .res { color: var(--accent-deep); font-weight: 700; }
+  .calc-line.pub { border-left: 3px solid var(--good); }
+  .calc-line.priv { border-left: 3px solid var(--bad); }
+  .calc-line.hl { background: var(--good-soft); }
+  .calc-line.hl .res { color: var(--good); }
+  @media (prefers-reduced-motion: no-preference) { .res.bump { animation: bump 0.45s ease; } }
+  @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  .res { display: inline-block; }
+  .error-note { color: var(--bad); font-size: 14.5px; margin-top: 8px; min-height: 1em; }
+
+  /* ============ SECTION 1: Padlock exchange ============ */
+  .exchange-diagram { display: grid; grid-template-columns: 1fr 2.2fr 1fr; align-items: center; gap: 10px; }
+  .party { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .avatar { width: 58px; height: 58px; border-radius: 50%; background: var(--accent-soft); border: 2px solid var(--accent-line); display: flex; align-items: center; justify-content: center; font-family: "Literata", serif; font-weight: 700; font-size: 22px; color: var(--accent-deep); }
+  .avatar.evil { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .party .name { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink-soft); }
+  .key-badge { font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 3px 9px; border-radius: 10px; text-align: center; }
+  .key-badge.pub { color: var(--good); background: var(--good-soft); }
+  .key-badge.priv { color: var(--bad); background: var(--bad-soft); }
+  .channel2 { position: relative; height: 140px; }
+  .rail2 { position: absolute; left: 0; right: 0; height: 2px; background: var(--line); }
+  .rail2.top { top: 40px; } .rail2.bot { top: 100px; }
+  .rail-label { position: absolute; left: 50%; transform: translateX(-50%); font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; background: var(--surface); padding: 0 6px; }
+  .rail-label.top { top: 10px; } .rail-label.bot { top: 116px; }
+  .traveler { position: absolute; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; }
+  .traveler svg { width: 34px; height: 34px; }
+  .traveler.lock { top: 22px; right: 0; }
+  .traveler.box { top: 82px; left: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .traveler.lock { animation: lockTravel 6s ease-in-out infinite; }
+    .traveler.box { animation: boxTravel 6s ease-in-out infinite; }
+  }
+  @keyframes lockTravel { 0% { right: 0; opacity: 0; } 6% { opacity: 1; } 40% { right: calc(100% - 38px); opacity: 1; } 46%, 100% { right: calc(100% - 38px); opacity: 0; } }
+  @keyframes boxTravel { 0%, 48% { left: 0; opacity: 0; } 54% { opacity: 1; } 90% { left: calc(100% - 38px); opacity: 1; } 96%, 100% { left: calc(100% - 38px); opacity: 0; } }
+  .eve-tag { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--bad); background: var(--bad-soft); padding: 3px 10px; border-radius: 10px; white-space: nowrap; }
+
+  .counter-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .counter-box { border-radius: 10px; padding: 16px; text-align: center; border: 1px solid var(--line); background: var(--surface-tint); }
+  .counter-box .big { font-family: "JetBrains Mono", monospace; font-size: 30px; font-weight: 700; display: block; }
+  .counter-box.sym .big { color: var(--bad); }
+  .counter-box.asym .big { color: var(--good); }
+  .counter-box .small { font-size: 14px; color: var(--ink-soft); }
+
+  /* ============ SECTION 2: Clock ============ */
+  .clock-layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: center; }
+  @media (max-width: 680px) { .clock-layout { grid-template-columns: 1fr; justify-items: center; } }
+  #clockSvg { width: 250px; height: 250px; }
+  #clockHand { transform-origin: 125px 125px; transition: transform 1.4s cubic-bezier(.3,.7,.2,1); }
+  .clock-readout { font-family: "JetBrains Mono", monospace; font-size: 16px; }
+  .clock-readout .big { font-size: 28px; color: var(--accent); font-weight: 700; }
+  .powchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+  .powchip { font-family: "JetBrains Mono", monospace; font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; text-align: center; background: var(--surface-tint); min-width: 44px; }
+  .powchip .x { display: block; color: var(--ink-faint); font-size: 10px; }
+  .powchip .y { display: block; color: var(--accent-deep); font-weight: 700; font-size: 15px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .powchip { opacity: 0; transform: translateY(6px) scale(0.9); }
+    .powchip.show { opacity: 1; transform: none; transition: opacity 0.35s ease, transform 0.35s ease; }
+  }
+  .oneway { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin: 18px 0; }
+  .oneway .side { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 15px; }
+  .oneway .arrows { display: flex; flex-direction: column; gap: 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; text-align: center; }
+  .oneway .easy { color: var(--good); }
+  .oneway .hard { color: var(--bad); }
+  @media (prefers-reduced-motion: no-preference) {
+    .oneway .easy span { display: inline-block; animation: nudgeR 1.8s ease-in-out infinite; }
+    .oneway .hard span { display: inline-block; animation: strain 1.8s ease-in-out infinite; }
+  }
+  @keyframes nudgeR { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+  @keyframes strain { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(2px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(1px); } }
+
+  /* ============ SECTION 4: Paint mixing ============ */
+  .paint-stage { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .paint-col { border-radius: 12px; padding: 14px 10px; text-align: center; min-height: 330px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .paint-col.alice, .paint-col.bob { background: var(--surface-tint); }
+  .paint-col.pub { background: var(--bad-soft); border: 1px dashed var(--bad); }
+  .paint-col h5 { margin: 0 0 4px; font-family: "JetBrains Mono", monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+  .paint-col.pub h5 { color: var(--bad); }
+  .blob-item { display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: 0; transform: scale(0.4); transition: opacity 0.45s ease, transform 0.55s cubic-bezier(.3,1.6,.5,1); }
+  .blob-item.show { opacity: 1; transform: scale(1); }
+  .blob { width: 46px; height: 40px; border-radius: 52% 48% 55% 45% / 55% 50% 50% 45%; box-shadow: inset -5px -6px 0 rgba(0,0,0,0.12); }
+  .blob-item span { font-size: 12px; font-family: "JetBrains Mono", monospace; color: var(--ink-soft); }
+  .blob-item.secret span::before { content: "🔒 "; }
+  .blob-item.final .blob { width: 58px; height: 50px; outline: 3px solid var(--good); outline-offset: 3px; }
+  @media (max-width: 600px) { .paint-col { min-height: 300px; padding: 10px 4px; } .blob { width: 36px; height: 32px; } .blob-item span { font-size: 10.5px; } }
+
+  /* ============ SECTION 4: MITM ============ */
+  .mitm-stage { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
+  .mitm-stage .party { padding: 10px 4px; }
+  .mitm-log { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .mitm-msg { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 13px; opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease, transform 0.4s ease; }
+  .mitm-msg.show { opacity: 1; transform: none; }
+  .mitm-msg .bar { grid-column: var(--from) / var(--to); background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-deep); border-radius: 8px; padding: 6px 10px; text-align: center; position: relative; }
+  .mitm-msg .bar.evil { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .mitm-msg .bar.ok { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+  .key-badge.dyn { transition: all 0.4s ease; min-height: 22px; }
+
+  /* ============ SECTION 5: Signature ============ */
+  textarea.msg { resize: vertical; min-height: 64px; font-size: 14.5px; }
+  .verdict { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; margin-top: 12px; font-weight: 600; transition: background 0.3s ease, color 0.3s ease; }
+  .verdict .icon { font-size: 26px; line-height: 1; }
+  .verdict.ok { background: var(--good-soft); color: var(--good); }
+  .verdict.fail { background: var(--bad-soft); color: var(--bad); }
+  .verdict.idle { background: var(--surface-tint); color: var(--ink-faint); }
+  @media (prefers-reduced-motion: no-preference) { .verdict.fail .icon { animation: shake 0.45s ease; } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+  @media (max-width: 640px) { .role-grid { grid-template-columns: 1fr; } }
+  .role { border-radius: 12px; padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+  .role h4 { margin: 0 0 10px; font-family: "Literata", serif; font-size: 17px; }
+  .role .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 15px; color: var(--ink-soft); }
+  .role .chip { font-family: "JetBrains Mono", monospace; font-size: 11.5px; padding: 3px 9px; border-radius: 10px; white-space: nowrap; }
+  .chip.pub { background: var(--good-soft); color: var(--good); }
+  .chip.priv { background: var(--bad-soft); color: var(--bad); }
+
+  /* ============ SECTION 6: ECC ============ */
+  #eccSvg { width: 100%; height: auto; display: block; max-width: 600px; margin: 0 auto; }
+  #eccSvg .curve { fill: none; stroke: var(--accent); stroke-width: 2.6; }
+  #eccSvg .axis { stroke: var(--line); stroke-width: 1.4; }
+  #eccSvg .chord { stroke: var(--warn); stroke-width: 2; fill: none; transition: stroke-dashoffset 1.1s ease; }
+  #eccSvg .reflect { stroke: var(--violet); stroke-width: 2; stroke-dasharray: 5 5; transition: opacity 0.6s ease; }
+  #eccSvg .pt { transition: opacity 0.5s ease, r 0.5s ease; }
+  #eccSvg text { font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 700; }
+
+  .ks-bars { margin-top: 6px; }
+  .ks-group { margin-bottom: 18px; }
+  .ks-group .glabel { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .ks-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .ks-name { width: 70px; flex: 0 0 70px; font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink-soft); }
+  .ks-track { flex: 1; height: 18px; background: var(--surface-tint); border-radius: 5px; overflow: hidden; }
+  .ks-fill { height: 100%; width: 0%; border-radius: 5px; transition: width 1.5s cubic-bezier(.3,.7,.2,1); }
+  .ks-fill.rsa { background: var(--bad); }
+  .ks-fill.ecc { background: var(--good); }
+  .ks-fill.aes { background: var(--accent); }
+  .ks-val { width: 92px; flex: 0 0 92px; font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink-faint); text-align: right; }
+
+  /* ============ SECTION 7: Hybrid pipeline ============ */
+  .hybrid { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; justify-content: center; }
+  .hy-stage { flex: 1 1 120px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 6px; }
+  .hy-box { width: 70px; height: 70px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 2px solid var(--accent-line); background: var(--accent-soft); }
+  .hy-box.asym { border-color: var(--good); background: var(--good-soft); }
+  .hy-box.sym { border-color: var(--accent); }
+  .hy-stage .t { font-family: "Literata", serif; font-weight: 700; font-size: 14.5px; }
+  .hy-stage .d { font-size: 13px; color: var(--ink-soft); }
+  .hy-arrow { display: flex; align-items: center; color: var(--ink-faint); font-size: 20px; padding: 0 2px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .hy-box { animation: hyglow 7.5s ease-in-out infinite; }
+    .hy-stage:nth-child(1) .hy-box { animation-delay: 0s; }
+    .hy-stage:nth-child(3) .hy-box { animation-delay: 1.5s; }
+    .hy-stage:nth-child(5) .hy-box { animation-delay: 3s; }
+    .hy-stage:nth-child(7) .hy-box { animation-delay: 4.5s; }
+    .hy-stage:nth-child(9) .hy-box { animation-delay: 6s; }
+  }
+  @keyframes hyglow { 0%, 16%, 100% { box-shadow: none; transform: scale(1); } 6% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 20%, transparent); transform: scale(1.08); } }
+  @media (max-width: 700px) { .hybrid { flex-direction: column; align-items: center; } .hy-arrow { transform: rotate(90deg); padding: 4px 0; } }
+
+  .takeaway { background: var(--ink); color: var(--bg); border-radius: 12px; padding: 26px 26px 24px; margin-top: 10px; }
+  :root[data-theme="dark"] .takeaway { background: var(--surface-tint); color: var(--ink); border: 1px solid var(--line); }
+  .takeaway .label { font-family: "JetBrains Mono", monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; display: block; margin-bottom: 12px; }
+  .takeaway ol { margin: 0 0 16px; padding-left: 20px; }
+  .takeaway ol li { margin-bottom: 8px; opacity: 0.92; }
+  .takeaway .closing { margin: 14px 0 0; opacity: 0.85; font-size: 15.5px; border-top: 1px solid rgba(128,128,128,0.28); padding-top: 14px; }
+
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" type="button">
+  <span class="knob">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+  </span>
+  <span id="themeLabel">Light</span>
+</button>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">SE5101 &middot; Computer and Network Security</div>
+    <h1 class="title">Public Key Cryptography</h1>
+    <p class="subtitle">How two people who have never met can agree on a secret in public, how RSA turns the difficulty of factoring into a lock anyone can close but only one person can open, and how the same idea gives us digital signatures.</p>
+  </div>
+
+  <nav class="toc" id="toc">
+    <a href="#why">1. Why public key</a>
+    <a href="#rsa">2. RSA</a>
+    <a href="#dh">3. Diffie-Hellman</a>
+    <a href="#sig">4. Signatures</a>
+    <a href="#others">5. ElGamal, DSA &amp; ECC</a>
+    <a href="#practice">6. In practice</a>
+    <a href="#takeaways">Takeaways</a>
+  </nav>
+
+  <div class="framing reveal">
+    <p><strong>Where this fits.</strong> Last lecture ended on the biggest weakness of secret key cryptography: before Alice and Bob can talk securely, they must already share a key, and they need a secure channel to share it. Public key cryptography breaks that circle. Each person gets <em>two</em> mathematically linked keys, one they publish to the world and one they never reveal.</p>
+    <p>The ideas build on each other: why two keys solve the distribution problem, the modular arithmetic that makes it possible, the RSA algorithm, the Diffie-Hellman key exchange (and the attack it is vulnerable to), digital signatures, the discrete-log and elliptic curve family, and finally how real systems like TLS combine public key and secret key cryptography.</p>
+  </div>
+
+  <!-- ================================================================ -->
+  <section class="block" id="why">
+    <div class="block-head reveal"><span class="block-num">01</span><h2>Why public key cryptography</h2></div>
+    <p class="block-dek reveal">Two keys instead of one: a public key anyone can use, and a private key only its owner holds.</p>
+
+    <div class="definition reveal">
+      <span class="label">Definition</span>
+      <p>Public key cryptography, also called asymmetric cryptography, gives each user a <strong>key pair</strong>: a public key <span class="mono">e</span> that can be shared with anyone, and a private key <span class="mono">d</span> that is kept secret. What one key does, only the other key can undo, and knowing the public key does not let you work out the private key.</p>
+    </div>
+
+    <p class="reveal">The everyday analogy is an open padlock. Bob manufactures padlocks and hands out open ones to anyone who asks, but he keeps the only key. Alice puts her message in a box, snaps one of Bob's padlocks shut, and sends the box. Eve sees the padlock travel one way and the locked box travel back, but neither helps her: closing a padlock is easy for anyone, opening it needs Bob's key.</p>
+
+    <div class="widget reveal">
+      <div class="exchange-diagram">
+        <div class="party">
+          <div class="avatar">A</div><div class="name">Alice</div>
+          <div class="key-badge pub">uses Bob's public key</div>
+        </div>
+        <div class="channel2">
+          <div class="rail-label top">&larr; Bob's public key (open padlock)</div>
+          <div class="rail2 top"></div>
+          <div class="eve-tag">Eve sees both, opens neither</div>
+          <div class="rail2 bot"></div>
+          <div class="rail-label bot">locked box (ciphertext) &rarr;</div>
+          <div class="traveler lock">
+            <svg viewBox="0 0 40 40"><path d="M12 18v-6a8 8 0 0 1 16 0" fill="none" stroke="var(--good)" stroke-width="3.5" stroke-linecap="round"/><rect x="8" y="18" width="24" height="17" rx="3" fill="var(--good)"/></svg>
+          </div>
+          <div class="traveler box">
+            <svg viewBox="0 0 40 40"><rect x="4" y="12" width="32" height="24" rx="3" fill="var(--warn)"/><path d="M15 14v-4a5 5 0 0 1 10 0v4" fill="none" stroke="var(--good)" stroke-width="3"/><rect x="13" y="13" width="14" height="10" rx="2" fill="var(--good)"/></svg>
+          </div>
+        </div>
+        <div class="party">
+          <div class="avatar">B</div><div class="name">Bob</div>
+          <div class="key-badge priv">keeps private key</div>
+        </div>
+      </div>
+    </div>
+    <p class="caption reveal">The public key travels freely in the open. Only the private key, which never leaves Bob, can undo what it does.</p>
+
+    <h3 class="sub reveal">The key distribution problem, counted</h3>
+    <p class="reveal">With secret key cryptography, every pair of people who want to talk privately needs their own shared key. That grows quadratically. With public key cryptography, each person needs exactly one key pair, and anyone can encrypt to anyone. Drag the slider to see the difference.</p>
+
+    <div class="widget reveal">
+      <div class="ctrl">
+        <label for="userSlider">Number of users: <span class="val" id="userVal">10</span></label>
+        <input type="range" id="userSlider" min="2" max="1000" value="10">
+      </div>
+      <div class="counter-wrap">
+        <div class="counter-box sym"><span class="big" id="symCount">45</span><span class="small">shared secret keys needed<br><span class="mono">n(n&minus;1)/2</span>, each distributed securely</span></div>
+        <div class="counter-box asym"><span class="big" id="asymCount">10</span><span class="small">key pairs needed<br><span class="mono">n</span>, public halves can be published openly</span></div>
+      </div>
+    </div>
+
+    <div class="card-grid reveal">
+      <div class="card"><h4>Confidentiality</h4><p>Encrypt with the <em>recipient's public key</em>. Only the recipient's private key can decrypt it.</p></div>
+      <div class="card"><h4>Digital signatures</h4><p>Sign with the <em>sender's private key</em>. Anyone can verify with the sender's public key, and nobody else could have produced it.</p></div>
+      <div class="card"><h4>Key establishment</h4><p>Two parties derive a shared secret key over a public channel, then switch to fast secret key cryptography.</p></div>
+    </div>
+
+    <div class="definition warn reveal">
+      <span class="label">The catch</span>
+      <p>Public key algorithms are much slower than secret key algorithms, typically by several orders of magnitude. And publishing a key creates a new problem: when you receive "Bob's public key," how do you know it really belongs to Bob? Both points come back in sections 4 and 7.</p>
+    </div>
+  </section>
+
+  
+
+  <!-- ================================================================ -->
+  <section class="block" id="rsa">
+    <div class="block-head reveal"><span class="block-num">02</span><h2>RSA</h2></div>
+    <p class="block-dek reveal">Rivest, Shamir and Adleman, 1977: the first widely used public key algorithm, and still everywhere today.</p>
+
+    <p class="lede reveal">RSA can do both encryption and digital signatures. Its security rests on the fact that multiplying two large primes is easy, but recovering the primes from their product is not.</p>
+
+    <h3 class="sub reveal">Key generation</h3>
+    <div class="flow-strip reveal">
+      <div class="flow-step"><span class="k">Step 1</span><h4>Pick two primes</h4><p>Choose large random primes p and q, kept secret.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Step 2</span><h4>n = p &middot; q</h4><p>The modulus. Public.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Step 3</span><h4>&phi;(n)</h4><p>(p&minus;1)(q&minus;1). Secret.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Step 4</span><h4>Choose e</h4><p>1 &lt; e &lt; &phi;(n), with gcd(e, &phi;(n)) = 1. Public.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Step 5</span><h4>Compute d</h4><p>d = e<sup>&minus;1</sup> mod &phi;(n). Private.</p></div>
+    </div>
+
+    <div class="definition reveal">
+      <span class="label">The RSA algorithm</span>
+      <p>Public key: <span class="mono">(e, n)</span> &nbsp;&middot;&nbsp; Private key: <span class="mono">(d, n)</span></p>
+      <p>Encrypt message m (with 0 &le; m &lt; n): <span class="mono">c = m<sup>e</sup> mod n</span></p>
+      <p>Decrypt: <span class="mono">m = c<sup>d</sup> mod n</span></p>
+    </div>
+
+    <h4 class="mini reveal">Why decryption works</h4>
+    <p class="reveal">Since <span class="mono">e&middot;d &equiv; 1 (mod &phi;(n))</span>, we can write <span class="mono">e&middot;d = 1 + k&middot;&phi;(n)</span> for some integer k. Then <span class="mono">c<sup>d</sup> = m<sup>ed</sup> = m &middot; (m<sup>&phi;(n)</sup>)<sup>k</sup> &equiv; m &middot; 1<sup>k</sup> = m (mod n)</span> by Euler's theorem. (A short argument using the Chinese Remainder Theorem shows it also holds for the rare m that share a factor with n.)</p>
+
+    <h3 class="sub reveal">Try it: an RSA calculator</h3>
+    <p class="reveal">Pick two small primes, choose a valid e, and encrypt a number. Everything is computed live in your browser. The defaults are the classic textbook example: p = 61, q = 53, e = 17, message 65.</p>
+
+    <div class="widget reveal">
+      <div class="widget-head"><span class="widget-title">Interactive: RSA with toy primes</span><button class="fbtn" id="rsaRandom" type="button">Random primes</button></div>
+      <div class="controls">
+        <div class="ctrl"><label for="rsaP">Prime p</label><select id="rsaP"></select></div>
+        <div class="ctrl"><label for="rsaQ">Prime q</label><select id="rsaQ"></select></div>
+        <div class="ctrl"><label for="rsaE">Public exponent e</label><select id="rsaE"></select></div>
+        <div class="ctrl"><label for="rsaM">Message m (0 to n&minus;1)</label><input type="number" id="rsaM" value="65" min="0"></div>
+      </div>
+      <div class="calc-lines">
+        <div class="calc-line"><span class="lbl">Modulus</span><span class="expr" id="rsaNexpr"></span><span class="res" id="rsaN"></span></div>
+        <div class="calc-line"><span class="lbl">Totient &phi;(n)</span><span class="expr" id="rsaPhiExpr"></span><span class="res" id="rsaPhi"></span></div>
+        <div class="calc-line priv"><span class="lbl">Private exponent d</span><span class="expr" id="rsaDexpr"></span><span class="res" id="rsaD"></span></div>
+        <div class="calc-line pub"><span class="lbl">Public key</span><span class="res" id="rsaPub"></span></div>
+        <div class="calc-line priv"><span class="lbl">Private key</span><span class="res" id="rsaPriv"></span></div>
+        <div class="calc-line"><span class="lbl">Encrypt c = m<sup>e</sup> mod n</span><span class="expr" id="rsaCexpr"></span><span class="res" id="rsaC"></span></div>
+        <div class="calc-line hl"><span class="lbl">Decrypt c<sup>d</sup> mod n</span><span class="expr" id="rsaM2expr"></span><span class="res" id="rsaM2"></span></div>
+      </div>
+      <div class="error-note" id="rsaErr"></div>
+    </div>
+    <p class="caption reveal">Notice the decrypted value always equals the original message, and that the ciphertext looks unrelated to it. Real RSA uses primes of 1024+ bits each, giving n of 2048 bits or more.</p>
+
+    <h3 class="sub reveal">Security and practical details</h3>
+    <div class="card-grid reveal">
+      <div class="card"><h4>Breaking RSA &asymp; factoring n</h4><p>If an attacker factors n into p and q, they compute &phi;(n) and then d, exactly as the key owner did. No efficient classical factoring algorithm is known. 2048-bit n is today's minimum; 3072-bit is recommended for long-term use.</p></div>
+      <div class="card"><h4>Fast with e = 65537</h4><p>Exponentiation uses square-and-multiply, needing about one squaring per bit of the exponent. A small public e (65537 = 2<sup>16</sup>+1 is standard) makes encryption and verification fast; decryption with the large d is the slow side.</p></div>
+      <div class="card"><h4>Never use "textbook" RSA</h4><p>Raw m<sup>e</sup> mod n is deterministic, so the same message always gives the same ciphertext, and small messages can leak. Real systems add randomized padding: OAEP for encryption and PSS for signatures.</p></div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="block" id="dh">
+    <div class="block-head reveal"><span class="block-num">03</span><h2>Diffie-Hellman key exchange</h2></div>
+    <p class="block-dek reveal">Agreeing on a shared secret while someone listens to every word.</p>
+
+    <p class="lede reveal">Published by Whitfield Diffie and Martin Hellman in 1976, this was the first public demonstration of public key cryptography. It does not encrypt messages itself. It lets two parties who share nothing in advance end up with the same secret number, which they then use as a key for a fast symmetric cipher like AES.</p>
+
+    <h3 class="sub reveal">The idea with paint</h3>
+    <p class="reveal">Mixing paint is easy, but separating a mixture back into its ingredients is practically impossible. That is the one-way function. Step through the exchange:</p>
+
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Animated: paint mixing analogy</span>
+        <div class="btn-row"><button class="fbtn" id="paintReset" type="button">Reset</button><button class="fbtn" id="paintPrev" type="button">&larr; Prev</button><button class="fbtn primary" id="paintNext" type="button">Next &rarr;</button></div>
+      </div>
+      <div class="paint-stage">
+        <div class="paint-col alice">
+          <h5>Alice</h5>
+          <div class="blob-item" data-step="1"><div class="blob" data-color="common"></div><span>common</span></div>
+          <div class="blob-item secret" data-step="2"><div class="blob" data-color="aSecret"></div><span>secret</span></div>
+          <div class="blob-item" data-step="2"><div class="blob" data-color="aMix"></div><span>mix A</span></div>
+          <div class="blob-item" data-step="4"><div class="blob" data-color="bMix"></div><span>got mix B</span></div>
+          <div class="blob-item final" data-step="5"><div class="blob" data-color="final"></div><span>shared!</span></div>
+        </div>
+        <div class="paint-col pub">
+          <h5>Public (Eve sees)</h5>
+          <div class="blob-item" data-step="1"><div class="blob" data-color="common"></div><span>common</span></div>
+          <div class="blob-item" data-step="3"><div class="blob" data-color="aMix"></div><span>mix A</span></div>
+          <div class="blob-item" data-step="3"><div class="blob" data-color="bMix"></div><span>mix B</span></div>
+          <div class="blob-item" data-step="5"><div class="blob" style="background: repeating-linear-gradient(45deg, var(--line) 0 6px, var(--surface) 6px 12px);"></div><span>can't make it</span></div>
+        </div>
+        <div class="paint-col bob">
+          <h5>Bob</h5>
+          <div class="blob-item" data-step="1"><div class="blob" data-color="common"></div><span>common</span></div>
+          <div class="blob-item secret" data-step="2"><div class="blob" data-color="bSecret"></div><span>secret</span></div>
+          <div class="blob-item" data-step="2"><div class="blob" data-color="bMix"></div><span>mix B</span></div>
+          <div class="blob-item" data-step="4"><div class="blob" data-color="aMix"></div><span>got mix A</span></div>
+          <div class="blob-item final" data-step="5"><div class="blob" data-color="final"></div><span>shared!</span></div>
+        </div>
+      </div>
+      <div class="step-caption" id="paintCaption"></div>
+    </div>
+
+   
+
+   
+    <h3 class="sub reveal">The weakness: man-in-the-middle</h3>
+    <p class="reveal">Plain Diffie-Hellman gives Alice a shared key with <em>someone</em>, but nothing tells her who. An active attacker, Mallory, who can intercept and replace messages, can run two separate exchanges, one with each side. Step through it:</p>
+
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Animated: man-in-the-middle on Diffie-Hellman</span>
+        <div class="btn-row"><button class="fbtn" id="mitmReset" type="button">Reset</button><button class="fbtn primary" id="mitmNext" type="button">Next &rarr;</button></div>
+      </div>
+      <div class="mitm-stage">
+        <div class="party"><div class="avatar">A</div><div class="name">Alice</div><div class="key-badge dyn" id="mitmKA">&nbsp;</div></div>
+        <div class="party"><div class="avatar evil">M</div><div class="name">Mallory</div><div class="key-badge dyn" id="mitmKM">&nbsp;</div></div>
+        <div class="party"><div class="avatar">B</div><div class="name">Bob</div><div class="key-badge dyn" id="mitmKB">&nbsp;</div></div>
+      </div>
+      <div class="mitm-log">
+        <div class="mitm-msg" data-step="1"><div class="bar" style="--from:1; --to:3;">g<sup>a</sup> &rarr; intercepted</div></div>
+        <div class="mitm-msg" data-step="2"><div class="bar evil" style="--from:2; --to:4;">g<sup>m</sup> &rarr; "from Alice"</div></div>
+        <div class="mitm-msg" data-step="3"><div class="bar" style="--from:2; --to:4;">intercepted &larr; g<sup>b</sup></div></div>
+        <div class="mitm-msg" data-step="4"><div class="bar evil" style="--from:1; --to:3;">"from Bob" &larr; g<sup>m</sup></div></div>
+        <div class="mitm-msg" data-step="5"><div class="bar ok" style="--from:1; --to:4;">Alice &rarr; [enc K1] &rarr; Mallory reads, re-encrypts &rarr; [enc K2] &rarr; Bob</div></div>
+      </div>
+      <div class="step-caption" id="mitmCaption"></div>
+    </div>
+
+    <div class="definition reveal">
+      <span class="label">The fix: authenticate the exchange</span>
+      <p>Diffie-Hellman must be combined with authentication. In practice each side <strong>signs</strong> its DH value with a long-term private key whose public key is trusted, usually through a certificate. Mallory can still intercept, but she cannot forge Alice's or Bob's signature on g<sup>m</sup>, so the substitution is detected. This is how TLS and SSH use Diffie-Hellman.</p>
+    </div>
+
+    <div class="card-grid reveal">
+      <div class="card"><h4>Ephemeral DH and forward secrecy</h4><p>If fresh secrets a and b are generated for every session and then deleted, a later theft of the server's long-term signing key cannot decrypt past recorded sessions. This property is called (perfect) forward secrecy, and TLS 1.3 requires ephemeral key exchange.</p></div>
+      <div class="card"><h4>DH is not encryption</h4><p>Diffie-Hellman only produces a shared number. It cannot sign and it cannot encrypt by itself; the agreed value is fed into a key derivation function to produce symmetric keys.</p></div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="block" id="sig">
+    <div class="block-head reveal"><span class="block-num">04</span><h2>Digital signatures</h2></div>
+    <p class="block-dek reveal">Running public key cryptography in reverse: only the private key can sign, anyone can check.</p>
+
+    <p class="reveal">With RSA, the two exponents are interchangeable. Raising to d and then e also gives back the original. So if Alice computes <span class="mono">s = m<sup>d</sup> mod n</span> with her private key, anyone can compute <span class="mono">s<sup>e</sup> mod n</span> with her public key and check that it equals m. Only the holder of d could have produced s.</p>
+
+    <div class="role-grid reveal">
+      <div class="role">
+        <h4>Encrypting for confidentiality</h4>
+        <div class="row"><span class="chip pub">Bob's public key</span> Alice encrypts</div>
+        <div class="row"><span class="chip priv">Bob's private key</span> Bob decrypts</div>
+        <p style="font-size: 14.5px; color: var(--ink-faint); margin: 6px 0 0;">Anyone can send to Bob; only Bob can read.</p>
+      </div>
+      <div class="role">
+        <h4>Signing for authenticity</h4>
+        <div class="row"><span class="chip priv">Alice's private key</span> Alice signs</div>
+        <div class="row"><span class="chip pub">Alice's public key</span> anyone verifies</div>
+        <p style="font-size: 14.5px; color: var(--ink-faint); margin: 6px 0 0;">Only Alice can sign; everyone can check.</p>
+      </div>
+    </div>
+
+
+    <div class="card-grid reveal">
+      <div class="card"><h4>Authentication</h4><p>Only the private key holder could have produced a valid signature.</p></div>
+      <div class="card"><h4>Integrity</h4><p>Changing even one character changes the hash, and verification fails.</p></div>
+      <div class="card"><h4>Non-repudiation</h4><p>Unlike a MAC, which uses a shared key both parties hold, only the signer has the private key, so they cannot credibly deny signing to a third party.</p></div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="block" id="others">
+    <div class="block-head reveal"><span class="block-num">05</span><h2>ElGamal, DSA and elliptic curves</h2></div>
+    <p class="block-dek reveal">Other algorithms built on the discrete logarithm, and a different kind of "number" that allows much smaller keys.</p>
+
+    <div class="card-grid reveal">
+      <div class="card"><span class="tag">Discrete log</span><h4>ElGamal</h4><p>Extends Diffie-Hellman into encryption and signature schemes. Randomized: the same message encrypts differently every time, and ciphertexts are twice the size of the plaintext.</p></div>
+      <div class="card"><span class="tag">Discrete log</span><h4>DSA / DSS</h4><p>The NIST Digital Signature Algorithm, a variant of ElGamal signatures. Signature only, no encryption. Each signature needs a fresh secret random k; reusing k leaks the private key, as happened with Sony's PlayStation 3 signing keys in 2010.</p></div>
+      <div class="card"><span class="tag">Elliptic curves</span><h4>ECDH, ECDSA, Ed25519</h4><p>The same Diffie-Hellman and DSA ideas, but computed with points on an elliptic curve instead of numbers mod p. Dominant in modern TLS, SSH and messaging apps.</p></div>
+    </div>
+
+
+    <div class="definition warn reveal">
+      <span class="label">Looking ahead: quantum computers</span>
+      <p>Shor's algorithm, run on a sufficiently large quantum computer, would efficiently factor integers and solve discrete logarithms, breaking RSA, Diffie-Hellman and ECC alike. No such machine exists yet, but because recorded traffic could be decrypted later ("harvest now, decrypt later"), NIST published post-quantum standards in 2024: ML-KEM (FIPS 203) for key establishment and ML-DSA (FIPS 204) and SLH-DSA (FIPS 205) for signatures. Symmetric ciphers like AES are much less affected; longer keys are enough.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="block" id="practice">
+    <div class="block-head reveal"><span class="block-num">06</span><h2>Public key cryptography in practice</h2></div>
+    <p class="block-dek reveal">Use public key cryptography for the small, hard part, then hand off to a fast symmetric cipher.</p>
+
+    <p class="reveal">Public key operations are far too slow to encrypt bulk data, and secret key cryptography cannot solve key distribution. Real systems combine them, an approach called <strong>hybrid encryption</strong>. The public key algorithm protects only a short random session key; the session key then encrypts the actual data with AES or a similar cipher, using a mode like the ones covered last lecture.</p>
+
+    <div class="widget reveal">
+      <div class="widget-head"><span class="widget-title">Animated: hybrid encryption, Alice to Bob</span></div>
+      <div class="hybrid">
+        <div class="hy-stage"><div class="hy-box">🎲</div><div class="t">Session key</div><div class="d">Alice generates a random 128 or 256-bit key K</div></div>
+        <div class="hy-arrow">&rarr;</div>
+        <div class="hy-stage"><div class="hy-box asym">🔑</div><div class="t">Wrap K</div><div class="d">Encrypt K with Bob's public key (or agree on K via DH)</div></div>
+        <div class="hy-arrow">&rarr;</div>
+        <div class="hy-stage"><div class="hy-box sym">📦</div><div class="t">Encrypt data</div><div class="d">Encrypt the message with AES under K</div></div>
+        <div class="hy-arrow">&rarr;</div>
+        <div class="hy-stage"><div class="hy-box">📨</div><div class="t">Send both</div><div class="d">Wrapped key plus bulk ciphertext</div></div>
+        <div class="hy-arrow">&rarr;</div>
+        <div class="hy-stage"><div class="hy-box asym">🔓</div><div class="t">Bob unwraps</div><div class="d">Private key recovers K, then K decrypts the data</div></div>
+      </div>
+    </div>
+
+    <h3 class="sub reveal">Where you meet it every day</h3>
+    <div class="table-wrap reveal">
+      <table class="data-table">
+        <thead><tr><th>System</th><th>Public key part</th><th>Symmetric part</th></tr></thead>
+        <tbody>
+          <tr><td class="category">TLS 1.3 (HTTPS)</td><td>Ephemeral (EC)DH for key agreement; server certificate signature (RSA or ECDSA) for authentication</td><td>AES-GCM or ChaCha20-Poly1305</td></tr>
+          <tr><td class="category">SSH</td><td>(EC)DH key exchange; host and user keys (Ed25519, ECDSA, RSA) for authentication</td><td>AES or ChaCha20</td></tr>
+          <tr><td class="category">PGP / S/MIME email</td><td>Session key encrypted with recipient's public key; message signed with sender's private key</td><td>AES</td></tr>
+          <tr><td class="category">Software updates</td><td>Vendor signs the package; your device verifies with the vendor's public key</td><td>Usually none, integrity only</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub reveal">The remaining problem: whose key is this?</h3>
+    <p class="reveal">Public keys do not need to be secret, but they do need to be <strong>authentic</strong>. If Mallory can convince Alice that Mallory's public key belongs to Bob, every guarantee falls apart, exactly as in the man-in-the-middle attack. The standard solution is a <strong>certificate</strong>: a document binding a name to a public key, digitally signed by a trusted Certificate Authority. Building and managing that trust is the subject of public key infrastructure (PKI).</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="block" id="takeaways">
+    <div class="block-head reveal"><span class="block-num">08</span><h2>Key takeaways</h2></div>
+    <div class="takeaway reveal">
+      <span class="label">Before the next lecture</span>
+      <ol>
+        <li>Public key cryptography gives each user a key pair. The public key can be shared openly; the private key never leaves its owner. This solves the key distribution problem that limits secret key cryptography.</li>
+        <li>Its security comes from trapdoor one-way functions in modular arithmetic: factoring large numbers (RSA) and computing discrete logarithms (Diffie-Hellman, ElGamal, DSA, and their elliptic curve versions).</li>
+        <li>RSA: n = pq, choose e coprime to &phi;(n), d = e<sup>&minus;1</sup> mod &phi;(n). Encrypt c = m<sup>e</sup> mod n, decrypt m = c<sup>d</sup> mod n. Always use padding (OAEP, PSS) in practice.</li>
+        <li>Diffie-Hellman lets two parties agree on g<sup>ab</sup> mod p over a public channel, but unauthenticated DH is vulnerable to man-in-the-middle attacks. Signing the exchanged values fixes this.</li>
+        <li>Digital signatures sign a hash with the private key and verify with the public key, giving authentication, integrity and non-repudiation.</li>
+        <li>ECC offers equal security with much smaller keys. Real systems are hybrid: public key cryptography establishes or wraps a session key, and a symmetric cipher encrypts the data.</li>
+      </ol>
+      <p class="closing">Next: hash functions and message digests in more depth, and then how certificates and PKI answer the question every public key raises, "how do I know this key really belongs to who it claims?"</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>SE5101</span>
+    <span>sachin@foc.sab.ac.lk</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function modpow(b, e, m) {
+    b = BigInt(b); e = BigInt(e); m = BigInt(m);
+    if (m === 1n) return 0n;
+    var r = 1n; b = b % m;
+    while (e > 0n) { if (e & 1n) r = (r * b) % m; e >>= 1n; b = (b * b) % m; }
+    return r;
+  }
+  function gcd(a, b) { while (b) { var t = b; b = a % b; a = t; } return a; }
+  function modinv(a, m) {
+    var or = a, r = m, os = 1, s = 0;
+    while (r !== 0) { var q = Math.floor(or / r); var t = r; r = or - q * r; or = t; t = s; s = os - q * s; os = t; }
+    return ((os % m) + m) % m;
+  }
+  function setRes(el, val) {
+    var s = String(val);
+    if (el.textContent !== s) {
+      el.textContent = s;
+      el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+    }
+  }
+
+  /* ---------- Theme toggle ---------- */
+  var root = document.documentElement, label = $('themeLabel');
+  function applyTheme(t) { root.setAttribute('data-theme', t); label.textContent = t === 'dark' ? 'Dark' : 'Light'; }
+  var saved = null;
+  try { saved = localStorage.getItem('pkc-notes-theme'); } catch (e) {}
+  if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  applyTheme(saved);
+  $('themeToggle').addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('pkc-notes-theme', next); } catch (e) {}
+  });
+
+  /* ---------- Progress, reveal, TOC ---------- */
+  var bar = $('progressBar');
+  function updateProgress() { var h = document.documentElement, max = h.scrollHeight - h.clientHeight; bar.style.width = (max > 0 ? h.scrollTop / max * 100 : 0) + '%'; }
+  document.addEventListener('scroll', updateProgress, { passive: true }); updateProgress();
+
+  var targets = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    targets.forEach(function (el) { io.observe(el); });
+  } else { targets.forEach(function (el) { el.classList.add('in'); }); }
+
+  var sections = document.querySelectorAll('section.block'), links = document.querySelectorAll('.toc a');
+  function setActive() {
+    var pos = window.scrollY + 120, cur = null;
+    sections.forEach(function (s) { if (s.offsetTop <= pos) cur = s.id; });
+    links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + cur); });
+  }
+  document.addEventListener('scroll', setActive, { passive: true }); setActive();
+
+  /* ---------- S1: user counter ---------- */
+  var us = $('userSlider');
+  function updUsers() {
+    var n = +us.value;
+    $('userVal').textContent = n;
+    $('symCount').textContent = (n * (n - 1) / 2).toLocaleString();
+    $('asymCount').textContent = n.toLocaleString();
+  }
+  us.addEventListener('input', updUsers); updUsers();
+
+  /* ---------- S2: clock ---------- */
+  var clockN = $('clockN'), clockA = $('clockA'), hand = $('clockHand'), ticks = $('clockTicks');
+  for (var nn = 5; nn <= 24; nn++) { var o = document.createElement('option'); o.value = nn; o.textContent = nn; if (nn === 12) o.selected = true; clockN.appendChild(o); }
+  function drawTicks(n) {
+    var svgNS = 'http://www.w3.org/2000/svg', html = '';
+    ticks.innerHTML = '';
+    for (var i = 0; i < n; i++) {
+      var ang = (i / n) * 2 * Math.PI - Math.PI / 2;
+      var x = 125 + Math.cos(ang) * 96, y = 125 + Math.sin(ang) * 96;
+      var t = document.createElementNS(svgNS, 'text');
+      t.setAttribute('x', x); t.setAttribute('y', y + 5); t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-family', 'JetBrains Mono, monospace'); t.setAttribute('font-size', n > 16 ? '11' : '14');
+      t.setAttribute('font-weight', '700'); t.setAttribute('fill', 'var(--ink-soft)'); t.setAttribute('id', 'tick' + i);
+      t.textContent = i; ticks.appendChild(t);
+    }
+  }
+  var lastN = null;
+  function updClock() {
+    var n = +clockN.value, a = Math.max(0, Math.min(10000, parseInt(clockA.value, 10) || 0));
+    if (n !== lastN) { drawTicks(n); lastN = n; }
+    hand.style.transform = 'rotate(' + (a * 360 / n) + 'deg)';
+    var q = Math.floor(a / n), r = a % n;
+    for (var i = 0; i < n; i++) { var t = $('tick' + i); t.setAttribute('fill', i === r ? 'var(--accent)' : 'var(--ink-soft)'); }
+    $('clockReadout').innerHTML = a + ' mod ' + n + ' = <span class="big">' + r + '</span><br><span style="color: var(--ink-faint); font-size: 14px;">' + a + ' = ' + q + ' &times; ' + n + ' + ' + r + ' &nbsp;(' + q + ' full turn' + (q === 1 ? '' : 's') + ')</span>';
+  }
+  clockA.addEventListener('input', updClock);
+  clockN.addEventListener('change', function () { hand.style.transition = 'none'; hand.style.transform = 'rotate(0deg)'; void hand.getBoundingClientRect(); hand.style.transition = ''; updClock(); });
+  $('clockAdd').addEventListener('click', function () { clockA.value = (parseInt(clockA.value, 10) || 0) + (+clockN.value); updClock(); });
+  $('clockRand').addEventListener('click', function () { clockA.value = Math.floor(Math.random() * 120); updClock(); });
+  updClock();
+
+  /* ---------- S2: power chips ---------- */
+  var chipBox = $('powChips');
+  for (var x = 1; x <= 22; x++) {
+    var c = document.createElement('div'); c.className = 'powchip';
+    c.innerHTML = '<span class="x">x=' + x + '</span><span class="y">' + modpow(5, x, 23) + '</span>';
+    chipBox.appendChild(c);
+  }
+  var chipTimers = [];
+  function playChips() {
+    chipTimers.forEach(clearTimeout); chipTimers = [];
+    var chips = chipBox.querySelectorAll('.powchip');
+    chips.forEach(function (ch) { ch.classList.remove('show'); });
+    chips.forEach(function (ch, i) { chipTimers.push(setTimeout(function () { ch.classList.add('show'); }, reduceMotion ? 0 : 90 * i)); });
+  }
+  $('powReplay').addEventListener('click', playChips);
+  if ('IntersectionObserver' in window) {
+    var cio = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { playChips(); cio.unobserve(e.target); } }); }, { threshold: 0.4 });
+    cio.observe(chipBox);
+  } else playChips();
+
+  /* ---------- S3: RSA calculator ---------- */
+  var primes = [11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199];
+  var selP = $('rsaP'), selQ = $('rsaQ'), selE = $('rsaE'), inM = $('rsaM');
+  primes.forEach(function (p) {
+    var a = document.createElement('option'); a.value = p; a.textContent = p; selP.appendChild(a);
+    var b = document.createElement('option'); b.value = p; b.textContent = p; selQ.appendChild(b);
+  });
+  selP.value = 61; selQ.value = 53;
+  function fillE(phi, keep) {
+    var cands = [3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,65537].filter(function (e) { return e < phi && gcd(e, phi) === 1; });
+    selE.innerHTML = '';
+    cands.forEach(function (e) { var o = document.createElement('option'); o.value = e; o.textContent = e; selE.appendChild(o); });
+    if (cands.indexOf(keep) >= 0) selE.value = keep; else if (cands.indexOf(17) >= 0) selE.value = 17; else if (cands.length) selE.value = cands[0];
+  }
+  function updRSA(fromPQ) {
+    var p = +selP.value, q = +selQ.value, err = $('rsaErr');
+    if (p === q) { err.textContent = 'p and q must be different primes (otherwise n = p\u00B2 and \u03C6(n) is not (p\u22121)(q\u22121)).'; return; }
+    err.textContent = '';
+    var n = p * q, phi = (p - 1) * (q - 1);
+    if (fromPQ) fillE(phi, +selE.value);
+    var e = +selE.value, d = modinv(e, phi);
+    inM.max = n - 1;
+    var m = parseInt(inM.value, 10); if (isNaN(m) || m < 0) m = 0;
+    if (m >= n) { m = m % n; inM.value = m; }
+    var c = modpow(m, e, n), m2 = modpow(c, d, n);
+    $('rsaNexpr').textContent = p + ' \u00D7 ' + q + ' ='; setRes($('rsaN'), n);
+    $('rsaPhiExpr').textContent = (p - 1) + ' \u00D7 ' + (q - 1) + ' ='; setRes($('rsaPhi'), phi);
+    $('rsaDexpr').textContent = e + '\u207B\u00B9 mod ' + phi + ' =  (check: ' + e + '\u00D7' + d + ' mod ' + phi + ' = ' + ((e * d) % phi) + ')  \u2192';
+    setRes($('rsaD'), d);
+    setRes($('rsaPub'), '(e = ' + e + ', n = ' + n + ')');
+    setRes($('rsaPriv'), '(d = ' + d + ', n = ' + n + ')');
+    $('rsaCexpr').textContent = m + '^' + e + ' mod ' + n + ' ='; setRes($('rsaC'), c);
+    $('rsaM2expr').textContent = c + '^' + d + ' mod ' + n + ' ='; setRes($('rsaM2'), m2 + (Number(m2) === m ? '  \u2713 matches m' : ''));
+  }
+  selP.addEventListener('change', function () { updRSA(true); });
+  selQ.addEventListener('change', function () { updRSA(true); });
+  selE.addEventListener('change', function () { updRSA(false); });
+  inM.addEventListener('input', function () { updRSA(false); });
+  $('rsaRandom').addEventListener('click', function () {
+    var i = Math.floor(Math.random() * primes.length), j;
+    do { j = Math.floor(Math.random() * primes.length); } while (j === i);
+    selP.value = primes[i]; selQ.value = primes[j];
+    inM.value = Math.floor(Math.random() * primes[i] * primes[j]);
+    updRSA(true);
+  });
+  updRSA(true);
+
+  /* ---------- S4: paint mixing ---------- */
+  var cols = { common: [242, 201, 76], aSecret: [214, 69, 69], bSecret: [47, 111, 214] };
+  function mix() { var r = 0, g = 0, b = 0, a = arguments; for (var i = 0; i < a.length; i++) { r += a[i][0]; g += a[i][1]; b += a[i][2]; } return [Math.round(r / a.length), Math.round(g / a.length), Math.round(b / a.length)]; }
+  cols.aMix = mix(cols.common, cols.aSecret);
+  cols.bMix = mix(cols.common, cols.bSecret);
+  cols.final = mix(cols.common, cols.aSecret, cols.bSecret);
+  document.querySelectorAll('.blob[data-color]').forEach(function (b) { var c = cols[b.getAttribute('data-color')]; b.style.background = 'rgb(' + c.join(',') + ')'; });
+  var paintStep = 0, paintMax = 5;
+  var paintCaps = [
+    'Press <strong>Next</strong> to begin. Alice and Bob want a shared secret colour, and Eve can see everything sent between them.',
+    '<strong>Step 1.</strong> Alice and Bob publicly agree on a common starting colour (yellow). Eve sees it too. <em>(This is like the public values p and g.)</em>',
+    '<strong>Step 2.</strong> Each secretly picks their own colour, red for Alice and blue for Bob, and mixes it into the common paint. <em>(Like computing A = g<sup>a</sup> mod p.)</em>',
+    '<strong>Step 3.</strong> They send their mixtures to each other in public. Eve now has the common colour and both mixtures, but cannot "unmix" them to find either secret.',
+    '<strong>Step 4.</strong> Each receives the other\u2019s mixture. Alice holds Bob\u2019s mix; Bob holds Alice\u2019s mix.',
+    '<strong>Step 5.</strong> Each adds their own secret colour to what they received. Both end up with yellow + red + blue, the <strong>same</strong> colour. Eve, lacking either secret, cannot produce it. <em>(Like B<sup>a</sup> = A<sup>b</sup> = g<sup>ab</sup> mod p.)</em>'
+  ];
+  function renderPaint() {
+    document.querySelectorAll('.blob-item').forEach(function (it) { it.classList.toggle('show', +it.getAttribute('data-step') <= paintStep); });
+    $('paintCaption').innerHTML = paintCaps[paintStep];
+    $('paintPrev').disabled = paintStep === 0; $('paintNext').disabled = paintStep === paintMax;
+  }
+  $('paintNext').addEventListener('click', function () { if (paintStep < paintMax) { paintStep++; renderPaint(); } });
+  $('paintPrev').addEventListener('click', function () { if (paintStep > 0) { paintStep--; renderPaint(); } });
+  $('paintReset').addEventListener('click', function () { paintStep = 0; renderPaint(); });
+  renderPaint();
+
+  /* ---------- S4: DH numbers ---------- */
+  var dhA = $('dhA'), dhB = $('dhB'), P = 23, G = 5, eveTimer = null;
+  function updDH() {
+    var a = +dhA.value, b = +dhB.value;
+    $('dhAval').textContent = a; $('dhBval').textContent = b;
+    var A = modpow(G, a, P), B = modpow(G, b, P), sA = modpow(B, a, P), sB = modpow(A, b, P);
+    $('dhAexpr').textContent = 'A = 5^' + a + ' mod 23 ='; setRes($('dhAres'), A);
+    $('dhBexpr').textContent = 'B = 5^' + b + ' mod 23 ='; setRes($('dhBres'), B);
+    $('dhSAexpr').textContent = 'B^a = ' + B + '^' + a + ' mod 23 ='; setRes($('dhSA'), sA);
+    $('dhSBexpr').textContent = 'A^b = ' + A + '^' + b + ' mod 23 ='; setRes($('dhSB'), sB);
+    if (eveTimer) { clearInterval(eveTimer); eveTimer = null; }
+    $('eveOut').innerHTML = 'Eve tries x = 1, 2, 3&hellip; until 5<sup>x</sup> mod 23 equals A = ' + A + '.';
+  }
+  dhA.addEventListener('input', updDH); dhB.addEventListener('input', updDH);
+  $('eveBrute').addEventListener('click', function () {
+    if (eveTimer) clearInterval(eveTimer);
+    var target = modpow(G, +dhA.value, P), x = 0, out = $('eveOut');
+    eveTimer = setInterval(function () {
+      x++;
+      var v = modpow(G, x, P);
+      if (v === target) {
+        clearInterval(eveTimer); eveTimer = null;
+        out.innerHTML = '<span style="color: var(--bad); font-weight: 700;">Found it: 5^' + x + ' mod 23 = ' + v + ', so a = ' + x + ' (' + x + ' tries).</span> Now Eve computes B^' + x + ' mod 23 = ' + modpow(modpow(G, +dhB.value, P), x, P) + '.';
+      } else {
+        out.textContent = 'Trying x = ' + x + ': 5^' + x + ' mod 23 = ' + v + ' \u2260 ' + target;
+      }
+    }, reduceMotion ? 10 : 140);
+  });
+  updDH();
+
+  /* ---------- S4: MITM ---------- */
+  var mitmStep = 0, mitmMax = 5;
+  var mitmCaps = [
+    'Press <strong>Next</strong>. Alice and Bob begin a normal Diffie-Hellman exchange, unaware that Mallory controls the network between them.',
+    '<strong>1.</strong> Alice sends g<sup>a</sup> to Bob. Mallory intercepts it and does not forward it.',
+    '<strong>2.</strong> Mallory picks her own secret m and sends g<sup>m</sup> to Bob, claiming it is from Alice. Bob has no way to tell.',
+    '<strong>3.</strong> Bob replies with g<sup>b</sup>. Mallory intercepts that too.',
+    '<strong>4.</strong> Mallory sends g<sup>m</sup> to Alice as if from Bob. Now Alice shares K1 = g<sup>am</sup> with Mallory, and Bob shares K2 = g<sup>bm</sup> with Mallory. Both think they share a key with each other.',
+    '<strong>5.</strong> Every message Alice sends is decrypted by Mallory with K1, read or altered, re-encrypted with K2 and passed to Bob. The encryption is perfectly strong, it just leads to the wrong person.'
+  ];
+  function setBadge(id, txt, cls) { var el = $(id); el.innerHTML = txt || '&nbsp;'; el.className = 'key-badge dyn ' + (cls || ''); }
+  function renderMitm() {
+    document.querySelectorAll('.mitm-msg').forEach(function (m) { m.classList.toggle('show', +m.getAttribute('data-step') <= mitmStep); });
+    $('mitmCaption').innerHTML = mitmCaps[mitmStep];
+    setBadge('mitmKA', mitmStep >= 4 ? 'K1 = g<sup>am</sup>' : '', 'pub');
+    setBadge('mitmKB', mitmStep >= 2 ? 'K2 = g<sup>bm</sup>' : '', 'pub');
+    setBadge('mitmKM', mitmStep >= 3 ? 'K1 and K2' : (mitmStep >= 2 ? 'K1' : (mitmStep >= 1 ? 'has g<sup>a</sup>' : '')), mitmStep >= 1 ? 'priv' : '');
+    $('mitmNext').disabled = mitmStep === mitmMax;
+  }
+  $('mitmNext').addEventListener('click', function () { if (mitmStep < mitmMax) { mitmStep++; renderMitm(); } });
+  $('mitmReset').addEventListener('click', function () { mitmStep = 0; renderMitm(); });
+  renderMitm();
+
+  /* ---------- S5: signature ---------- */
+  var SN = 3233, SE = 17, SD = 2753, signed = null;
+  function toyHash(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % SN; return h; }
+  function updSig() {
+    var cur = $('sigMsg').value, h2 = toyHash(cur);
+    setRes($('sigH2'), h2);
+    var v = $('sigVerdict'), vt = $('sigVerdictText'), icon = v.querySelector('.icon');
+    if (!signed) { v.className = 'verdict idle'; return; }
+    var rec = modpow(signed.s, SE, SN);
+    setRes($('sigRec'), rec);
+    if (Number(rec) === h2) {
+      v.className = 'verdict ok'; icon.textContent = '\u2713';
+      vt.textContent = 'Valid signature: s^e mod n equals the hash of the message. The message is authentic and unchanged.';
+    } else {
+      v.className = 'verdict fail'; icon.textContent = '\u2717';
+      vt.textContent = 'Verification FAILED: the recovered hash (' + rec + ') does not match the hash of the received text (' + h2 + '). The message was altered after signing.';
+    }
+  }
+  $('sigSign').addEventListener('click', function () {
+    var h = toyHash($('sigMsg').value);
+    signed = { h: h, s: modpow(h, SD, SN) };
+    setRes($('sigH'), h); setRes($('sigS'), signed.s);
+    updSig();
+  });
+  $('sigMsg').addEventListener('input', updSig);
+  updSig();
+
+  /* ---------- S6: ECC point addition ---------- */
+  var W = 560, H = 380, xmin = -2, xmax = 3.8, ymin = -6.5, ymax = 6.5;
+  function sx(x) { return (x - xmin) / (xmax - xmin) * W; }
+  function sy(y) { return H - (y - ymin) / (ymax - ymin) * H; }
+  function f(x) { return x * x * x - x + 1; }
+  var root0 = -1.324718, xend = 3.36, lower = [], upper = [];
+  for (var xx = xend; xx >= root0; xx -= 0.01) lower.push([xx, -Math.sqrt(Math.max(0, f(xx)))]);
+  for (xx = root0; xx <= xend; xx += 0.01) upper.push([xx, Math.sqrt(Math.max(0, f(xx)))]);
+  var pts = lower.concat(upper);
+  var d = 'M' + pts.map(function (p) { return sx(p[0]).toFixed(1) + ' ' + sy(p[1]).toFixed(1); }).join(' L');
+  $('eccCurve').setAttribute('d', d);
+  function setLine(el, x1, y1, x2, y2) { el.setAttribute('x1', sx(x1)); el.setAttribute('y1', sy(y1)); el.setAttribute('x2', sx(x2)); el.setAttribute('y2', sy(y2)); }
+  setLine($('eccXaxis'), xmin, 0, xmax, 0); setLine($('eccYaxis'), 0, ymin, 0, ymax);
+  var Pp = [0, 1], Qp = [3, 5], R1 = [-11 / 9, -17 / 27], Rr = [-11 / 9, 17 / 27];
+  function lineY(x) { return 1 + (4 / 3) * x; }
+  var chord = $('eccChord');
+  setLine(chord, -1.8, lineY(-1.8), 3.7, lineY(3.7));
+  var chordLen = Math.hypot(sx(3.7) - sx(-1.8), sy(lineY(3.7)) - sy(lineY(-1.8)));
+  chord.style.strokeDasharray = chordLen; chord.style.strokeDashoffset = chordLen;
+  setLine($('eccReflect'), R1[0], R1[1], Rr[0], Rr[1]);
+  function place(c, t, p, dx, dy) { $(c).setAttribute('cx', sx(p[0])); $(c).setAttribute('cy', sy(p[1])); $(t).setAttribute('x', sx(p[0]) + dx); $(t).setAttribute('y', sy(p[1]) + dy); }
+  place('eccP', 'eccPl', Pp, 12, -10); place('eccQ', 'eccQl', Qp, -26, -10);
+  place('eccR1', 'eccR1l', R1, -36, 22); place('eccR', 'eccRl', Rr, -74, -12);
+  var eccStep = 0, eccMax = 3;
+  var eccCaps = [
+    'The curve y\u00B2 = x\u00B3 \u2212 x + 1 with two points on it: <strong>P = (0, 1)</strong> and <strong>Q = (3, 5)</strong>. Press <strong>Next</strong> to add them.',
+    '<strong>1.</strong> Draw the straight line through P and Q (slope 4/3). A line through two points of an elliptic curve always meets it in exactly one more point.',
+    '<strong>2.</strong> That third intersection is <strong>R\u2032 \u2248 (\u22121.22, \u22120.63)</strong>.',
+    '<strong>3.</strong> Reflect R\u2032 across the x-axis. The result, <strong>R \u2248 (\u22121.22, 0.63)</strong>, is defined as <strong>P + Q</strong>. Adding P to itself repeatedly gives kP; recovering k from kP is the hard problem ECC relies on.'
+  ];
+  function renderEcc() {
+    chord.style.strokeDashoffset = eccStep >= 1 ? 0 : chordLen;
+    var show = function (id, on) { $(id).setAttribute('opacity', on ? 1 : 0); };
+    show('eccR1', eccStep >= 2); show('eccR1l', eccStep >= 2);
+    show('eccReflect', eccStep >= 3); show('eccR', eccStep >= 3); show('eccRl', eccStep >= 3);
+    $('eccCaption').innerHTML = eccCaps[eccStep];
+    $('eccNext').disabled = eccStep === eccMax;
+  }
+  $('eccNext').addEventListener('click', function () { if (eccStep < eccMax) { eccStep++; renderEcc(); } });
+  $('eccReset').addEventListener('click', function () { eccStep = 0; renderEcc(); });
+  renderEcc();
+
+  /* ---------- S6: key size bars ---------- */
+  var ks = $('ksBars');
+  function fillBars() { ks.querySelectorAll('.ks-fill').forEach(function (fl) { fl.style.width = fl.getAttribute('data-w') + '%'; }); }
+  if ('IntersectionObserver' in window) {
+    var kio = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { fillBars(); kio.unobserve(e.target); } }); }, { threshold: 0.3 });
+    kio.observe(ks);
+  } else fillBars();
+})();
+</script>
+</body>
+</html>

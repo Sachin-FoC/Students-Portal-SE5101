@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trust, IPsec and IKE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ef; --surface: #ffffff; --surface-tint: #f0eee6;
+    --ink: #1e2430; --ink-soft: #52596a; --ink-faint: #838a9a;
+    --accent: #1d4ed8; --accent-deep: #16389c; --accent-soft: #e3eafc; --accent-line: #b9c9f5;
+    --line: #e1ddd1;
+    --good: #1a7a4c; --good-soft: #dcefe3;
+    --warn: #b5730a; --warn-soft: #fdf0da;
+    --bad: #b3261e; --bad-soft: #fbe2e0;
+    --violet: #6d3fc0; --violet-soft: #ece4fa;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161c; --surface: #1b1e26; --surface-tint: #21242e;
+    --ink: #e9e9ec; --ink-soft: #b3b6c2; --ink-faint: #82869a;
+    --accent: #7d9bff; --accent-deep: #a9bcff; --accent-soft: #232a44; --accent-line: #384372;
+    --line: #2c2f3a;
+    --good: #4fbf8a; --good-soft: #16311f;
+    --warn: #e0a94a; --warn-soft: #35270f;
+    --bad: #e97b73; --bad-soft: #3a1917;
+    --violet: #b79bf0; --violet-soft: #2b2140;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 17px; line-height: 1.6; margin: 0;
+    padding-inline: 24px; padding-block: 12px 70px;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  h1, h2, h3 { font-family: "Literata", Georgia, serif; color: var(--ink); text-wrap: balance; margin: 0; }
+  .wrap { max-width: 1180px; margin-inline: auto; }
+  body { font-variant-emoji: text; }
+  svg.ic { width: 1.05em; height: 1.05em; vertical-align: -0.17em; flex: none; }
+  .card .emoji { display: flex; width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--ink); color: var(--ink); align-items: center; justify-content: center; margin-bottom: 10px; font-size: 22px; }
+  .card .emoji svg.ic { width: 24px; height: 24px; margin: 0; vertical-align: 0; display: block; }
+  .avatar svg.ic { width: 26px; height: 26px; vertical-align: 0; }
+  .nat-node .ic svg { width: 28px; height: 28px; }
+  .pki-token svg.ic, .seq-msg svg.ic { width: 14px; height: 14px; vertical-align: -0.15em; }
+  .eve-box svg.ic { vertical-align: -0.2em; }
+  code, .mono { font-family: "JetBrains Mono", "Courier New", monospace; }
+
+  .theme-toggle { position: fixed; top: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 30px; padding: 6px 14px 6px 6px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.08); font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink-soft); }
+  .theme-toggle .knob { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; transition: transform 0.4s ease; }
+  .theme-toggle .knob svg { width: 15px; height: 15px; }
+  [data-theme="dark"] .theme-toggle .knob { transform: rotate(180deg); }
+  .theme-toggle .icon-sun { color: var(--warn); display: block; }
+  .theme-toggle .icon-moon { color: var(--accent); display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: block; }
+
+  .progress-track { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 55; }
+  .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-deep)); }
+
+  .reveal { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+  }
+
+  .masthead { border-bottom: 2px solid var(--ink); padding: 30px 0 22px; margin-bottom: 30px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 13.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--accent); display: inline-block; }
+  h1.title { font-size: clamp(30px, 4vw, 44px); font-weight: 600; line-height: 1.15; margin-bottom: 10px; max-width: 22ch; }
+  .subtitle { color: var(--ink-soft); font-size: 19px; max-width: 80ch; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 34px; position: sticky; top: 10px; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); padding: 8px 0; }
+  .toc a { text-decoration: none; color: var(--accent-deep); background: var(--accent-soft); border: 1px solid var(--accent-line); padding: 5px 11px; border-radius: 20px; font-size: 14.5px; font-weight: 600; transition: background 0.2s ease, transform 0.2s ease; }
+  .toc a:hover { background: var(--accent); color: #fff; transform: translateY(-1px); }
+  .toc a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .framing { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 40px; }
+  .framing p { margin: 0 0 10px; color: var(--ink-soft); }
+  .framing p:last-child { margin-bottom: 0; }
+  .framing strong { color: var(--ink); }
+
+  .part-banner { margin: 70px 0 34px; padding: 18px 22px; border-radius: 12px; background: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .part-banner { background: var(--accent-soft); color: var(--ink); border: 1px solid var(--accent-line); }
+  .part-banner .k { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+  .part-banner h2 { color: inherit; font-size: 26px; margin-top: 4px; }
+
+  section.block { margin-bottom: 54px; scroll-margin-top: 70px; }
+  .block-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+  .block-num { font-family: "JetBrains Mono", monospace; font-size: 15px; color: var(--accent); font-weight: 700; }
+  .block-head h2 { font-size: 28px; font-weight: 600; }
+  .block-dek { color: var(--ink-soft); font-size: 17px; margin: 8px 0 20px; max-width: 90ch; }
+  p { margin: 0 0 14px; max-width: 100ch; }
+  .definition p, .framing p { max-width: none; }
+  .lede { font-size: 19.5px; }
+  h3.sub { font-size: 19px; margin: 30px 0 12px; }
+  .caption { font-size: 14.5px; color: var(--ink-faint); text-align: center; margin-top: -2px; max-width: none; }
+
+  .definition { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0 20px; }
+  .definition .label { font-family: "JetBrains Mono", monospace; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-deep); display: block; margin-bottom: 6px; }
+  .definition p { margin: 0; font-size: 17.5px; }
+  .definition p + p { margin-top: 6px; }
+  .definition.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .definition.warn .label { color: var(--warn); }
+  .definition.good { border-color: var(--good); background: var(--good-soft); }
+  .definition.good .label { color: var(--good); }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); border-color: var(--accent-line); }
+  .card h4 { font-size: 17px; font-weight: 700; margin: 0 0 6px; font-family: "Literata", serif; }
+  .card p { font-size: 15.5px; color: var(--ink-soft); margin: 0; }
+    .card .tag { display: inline-block; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--accent-deep); background: var(--accent-soft); padding: 2px 8px; border-radius: 12px; margin-bottom: 8px; }
+  .card svg { width: 100%; height: 110px; display: block; margin-bottom: 8px; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 10px; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .data-table th, .data-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .data-table th { font-family: "JetBrains Mono", monospace; font-size: 12.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; background: var(--surface-tint); }
+  .data-table tbody tr:hover { background: var(--accent-soft); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table td { color: var(--ink-soft); }
+  .data-table td.category { color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+  .flow-strip { display: flex; align-items: stretch; margin: 20px 0 8px; flex-wrap: wrap; }
+  .flow-step { flex: 1 1 130px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 130px; transition: background 0.3s ease, border-color 0.3s ease; }
+  .flow-step .k { font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 5px; }
+  .flow-step h4 { margin: 0 0 5px; font-size: 15px; font-family: "Literata", serif; }
+  .flow-step p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .flow-arrow { display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 18px; flex: 0 0 26px; }
+  @media (max-width: 700px) { .flow-strip { flex-direction: column; } .flow-arrow { transform: rotate(90deg); padding: 4px 0; } }
+
+  .widget { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 22px 0 12px; }
+  .widget-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .widget-title { font-family: "JetBrains Mono", monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fbtn { font-family: "JetBrains Mono", monospace; font-size: 13px; font-weight: 600; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent-deep); padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; }
+  .fbtn:hover { background: var(--accent); color: #fff; }
+  .fbtn:active { transform: scale(0.96); }
+  .fbtn.primary { background: var(--accent); color: #fff; }
+  .fbtn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .fbtn.danger { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .fbtn.danger:hover { background: var(--bad); color: #fff; }
+  .fbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .step-caption { font-size: 15.5px; color: var(--ink-soft); background: var(--surface-tint); border-radius: 8px; padding: 12px 16px; margin-top: 16px; min-height: 52px; }
+  .step-caption strong { color: var(--ink); }
+
+  .party { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+  .avatar { width: 54px; height: 54px; border-radius: 50%; background: var(--accent-soft); border: 2px solid var(--accent-line); display: flex; align-items: center; justify-content: center; font-family: "Literata", serif; font-weight: 700; font-size: 20px; color: var(--accent-deep); transition: all 0.3s ease; }
+  .avatar.evil { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .avatar.trusted { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+  .avatar.active { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); transform: scale(1.08); }
+  .party .name { font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink-soft); }
+
+  /* Sequence-diagram rows */
+  .seq-head { display: grid; gap: 8px; align-items: start; }
+  .seq-log { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .seq-msg { display: grid; gap: 8px; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 12.5px; opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease, transform 0.4s ease; }
+  .seq-msg.show { opacity: 1; transform: none; }
+  .seq-msg .bar { grid-column: var(--from) / var(--to); background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-deep); border-radius: 8px; padding: 6px 10px; text-align: center; }
+  .seq-msg .bar.evil { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .seq-msg .bar.ok { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+  .seq-msg .bar.warnb { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+  .cols3 { grid-template-columns: repeat(3, 1fr); }
+  .cols4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* Key swap (Mallory) */
+  .verdict { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; margin-top: 12px; font-weight: 600; transition: background 0.3s ease, color 0.3s ease; }
+  .verdict .icon { font-size: 24px; line-height: 1; }
+  .verdict.ok { background: var(--good-soft); color: var(--good); }
+  .verdict.fail { background: var(--bad-soft); color: var(--bad); }
+  .verdict.idle { background: var(--surface-tint); color: var(--ink-faint); }
+  @media (prefers-reduced-motion: no-preference) { .verdict.fail .icon { animation: shake 0.45s ease; } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+  /* Trust model SVG animation */
+  .dash-anim { stroke-dasharray: 5 5; }
+  @media (prefers-reduced-motion: no-preference) { .dash-anim { animation: dashmove 1.6s linear infinite; } }
+  @keyframes dashmove { to { stroke-dashoffset: -20; } }
+
+  /* PKI workflow track */
+  .pki-track { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 58px; }
+  .pki-token { position: absolute; top: 0; width: 140px; margin-left: -70px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 12px; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); border-radius: 18px; padding: 6px 8px; transition: left 0.9s cubic-bezier(.4,.1,.2,1), opacity 0.4s ease; opacity: 0; white-space: nowrap; }
+  .pki-token.show { opacity: 1; }
+  .pki-rail { position: absolute; left: 12.5%; right: 12.5%; top: 86px; height: 2px; background: var(--line); }
+  .pki-track .party { position: relative; z-index: 1; }
+
+  /* Certificate */
+  .cert { border: 2px solid var(--accent-line); border-radius: 12px; padding: 16px 18px; background: linear-gradient(135deg, var(--surface), var(--accent-soft)); position: relative; max-width: 520px; margin: 0 auto; }
+  .cert .seal { position: absolute; right: 16px; top: 14px; width: 54px; height: 54px; border-radius: 50%; background: var(--good-soft); border: 2px dashed var(--good); color: var(--good); display: flex; align-items: center; justify-content: center; font-size: 11px; font-family: "JetBrains Mono", monospace; text-align: center; line-height: 1.1; }
+  @media (prefers-reduced-motion: no-preference) { .cert .seal { animation: spin 14s linear infinite; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .cert h4 { margin: 0 0 12px; font-family: "Literata", serif; font-size: 17px; }
+  .cert-field { display: flex; gap: 10px; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 15px; transition: background 0.2s ease; border: 1px solid transparent; }
+  .cert-field:hover, .cert-field.sel { background: var(--surface); border-color: var(--accent-line); }
+  .cert-field .fk { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-faint); min-width: 110px; text-transform: uppercase; padding-top: 2px; }
+  .cert-field .fv { color: var(--ink); font-weight: 600; }
+
+  /* Chain */
+  .chain { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .chain-node { width: min(360px, 100%); border: 2px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--surface-tint); display: flex; justify-content: space-between; align-items: center; gap: 10px; transition: all 0.4s ease; }
+  .chain-node .t { font-weight: 700; font-size: 15.5px; }
+  .chain-node .d { font-size: 13px; color: var(--ink-soft); }
+  .chain-node .st { font-size: 22px; min-width: 24px; text-align: center; }
+  .chain-node.ok { border-color: var(--good); background: var(--good-soft); }
+  .chain-node.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .chain-node.checking { border-color: var(--warn); background: var(--warn-soft); }
+  .chain-link { width: 2px; height: 24px; background: var(--line); position: relative; }
+  .chain-link::after { content: "signs ↓"; position: absolute; left: 10px; top: 2px; font-size: 11px; font-family: "JetBrains Mono", monospace; color: var(--ink-faint); white-space: nowrap; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+  .panel { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--surface-tint); }
+  .panel h4 { margin: 0 0 8px; font-family: "Literata", serif; font-size: 16.5px; }
+  .panel ol, .panel ul { margin: 0; padding-left: 20px; font-size: 15px; color: var(--ink-soft); }
+  .panel li { margin-bottom: 4px; }
+  .panel li.lit { color: var(--ink); font-weight: 600; }
+  .ctrl label { display: block; font-family: "JetBrains Mono", monospace; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 5px; }
+  .ctrl select { width: 100%; font-family: "JetBrains Mono", monospace; font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-tint); color: var(--ink); }
+
+  /* Packet builder */
+  .pkt-wrap { overflow-x: auto; padding: 10px 6px 4px 0; }
+  .pkt { display: flex; min-width: 640px; gap: 3px; }
+  .pkt-row { display: flex; min-width: 640px; gap: 3px; margin-top: 4px; }
+  .seg { border-radius: 7px; padding: 12px 6px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; border: 1.5px solid transparent; position: relative; transition: all 0.4s ease; min-width: 0; }
+  .seg small { display: block; font-weight: 500; font-size: 10.5px; opacity: 0.8; }
+  .seg.ip { background: var(--surface-tint); border-color: var(--line); color: var(--ink-soft); }
+  .seg.newip { background: var(--violet-soft); border-color: var(--violet); color: var(--violet); }
+  .seg.sec { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+  .seg.data { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-deep); }
+  .seg.enc { background-image: repeating-linear-gradient(45deg, transparent 0 7px, color-mix(in srgb, var(--ink) 9%, transparent) 7px 14px); }
+  .seg.enc::after { content: ""; position: absolute; top: -8px; right: -5px; width: 15px; height: 15px; border-radius: 50%; background-color: var(--surface); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E"); background-size: 11px; background-repeat: no-repeat; background-position: center; border: 1px solid var(--ink-soft); }
+  :root[data-theme="dark"] .seg.enc::after { filter: invert(1); background-color: #e4e1d9; }
+  .lane { height: 12px; border-radius: 4px; }
+  .lane.e { background: var(--ink-soft); opacity: 0.55; }
+  .lane.a { background: var(--good); }
+  .lane.p { background: repeating-linear-gradient(90deg, var(--good) 0 6px, transparent 6px 10px); }
+  .lane-label { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
+  @media (prefers-reduced-motion: no-preference) { .seg.pop { animation: pop 0.4s ease; } }
+  @keyframes pop { 0% { transform: scale(0.85); opacity: 0.2; } 100% { transform: scale(1); opacity: 1; } }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 18px; height: 10px; border-radius: 3px; display: inline-block; }
+  .eve-box { margin-top: 14px; border: 1px dashed var(--bad); background: var(--bad-soft); color: var(--bad); border-radius: 10px; padding: 10px 14px; font-size: 15px; }
+
+  /* Envelope analogy */
+  .env-stage { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .env-stage { grid-template-columns: 1fr; } }
+  .env-box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; background: var(--surface-tint); }
+  .env-box svg { width: 100%; max-width: 300px; height: 150px; }
+  .env-box h4 { margin: 4px 0 4px; font-family: "Literata", serif; }
+  .env-box p { font-size: 14.5px; color: var(--ink-soft); margin: 0 auto; }
+  @media (prefers-reduced-motion: no-preference) { .bob { animation: bob 3s ease-in-out infinite; } }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+  /* SA arrows */
+  #saSvg { width: 100%; height: auto; max-width: 760px; display: block; margin: 0 auto; }
+  #saSvg text { font-family: "JetBrains Mono", monospace; font-size: 13px; }
+
+  /* Replay */
+  .replay-lane { display: flex; flex-wrap: wrap; gap: 6px; min-height: 44px; padding: 8px; border-radius: 10px; background: var(--surface-tint); border: 1px solid var(--line); }
+  .pk { font-family: "JetBrains Mono", monospace; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--good); background: var(--good-soft); color: var(--good); }
+  .pk.rej { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); text-decoration: line-through; }
+  @media (prefers-reduced-motion: no-preference) { .pk { animation: pop 0.35s ease; } }
+
+  /* NAT */
+  .nat-stage { position: relative; height: 150px; margin: 6px 0; }
+  .nat-node { position: absolute; top: 20px; width: 92px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-soft); }
+  .nat-node .ic { width: 58px; height: 58px; margin: 0 auto 4px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--ink); background: var(--surface); border: 2px solid var(--ink-soft); }
+  .nat-node.router .ic { border-style: dashed; }
+  .nat-rail { position: absolute; left: 46px; right: 46px; top: 49px; height: 2px; background: var(--line); }
+  .nat-pkt { position: absolute; top: 106px; width: 150px; margin-left: -75px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 11.5px; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--accent-line); background: var(--surface); transition: left 1s ease, background 0.3s ease; }
+
+  /* IKE */
+  #ikeSvg { width: min(100%, 820px); height: auto; display: block; margin: 0 auto; }
+  #ikeSvg text { font-family: "JetBrains Mono", monospace; }
+  #ikeSvg .fade { transition: opacity 0.6s ease; }
+  @media (prefers-reduced-motion: no-preference) {
+    .flowR { animation: flowR 2.2s linear infinite; }
+    .flowL { animation: flowL 2.2s linear infinite; }
+  }
+  @keyframes flowR { from { transform: translateX(0); } to { transform: translateX(300px); } }
+  @keyframes flowL { from { transform: translateX(0); } to { transform: translateX(-300px); } }
+
+  /* Flashcards */
+  .flash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .flash { perspective: 900px; height: 150px; cursor: pointer; }
+  .flash-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s ease; transform-style: preserve-3d; }
+  .flash.flipped .flash-inner { transform: rotateY(180deg); }
+  .flash-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 15.5px; border: 1px solid var(--line); }
+  .flash-face.front { background: var(--surface); font-weight: 600; }
+  .flash-face.back { background: var(--good-soft); color: var(--ink); transform: rotateY(180deg); font-size: 14.5px; }
+
+  .takeaway { background: var(--ink); color: var(--bg); border-radius: 12px; padding: 26px 26px 24px; margin-top: 10px; }
+  :root[data-theme="dark"] .takeaway { background: var(--surface-tint); color: var(--ink); border: 1px solid var(--line); }
+  .takeaway .label { font-family: "JetBrains Mono", monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; display: block; margin-bottom: 12px; }
+  .takeaway ol { margin: 0; padding-left: 20px; }
+  .takeaway ol li { margin-bottom: 8px; opacity: 0.92; }
+
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink-faint); }
+
+  @media (min-width: 1000px) {
+    .cert-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+    .cert-layout .step-caption { margin-top: 0; }
+    .masthead { padding-right: 140px; }
+    .two-col { gap: 18px; }
+  }
+  @media (max-width: 999px) { .cert-layout .step-caption { margin-top: 16px; } }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" type="button">
+  <span class="knob">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+  </span>
+  <span id="themeLabel">Light</span>
+</button>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">SE5101 &middot; Computer and Network Security</div>
+    <h1 class="title">Trusted Intermediaries, IPsec and IKE</h1>
+    <p class="subtitle">How we know a key really belongs to someone (PKI and Kerberos), how IPsec protects every packet on the network (AH and ESP), and how IKE sets everything up automatically.</p>
+  </div>
+
+  <nav class="toc" id="toc">
+    <a href="#trust">1. Why trust</a>
+    <a href="#pki">2. PKI &amp; certificates</a>
+    <a href="#kerberos">3. KDC &amp; Kerberos</a>
+    <a href="#ipsec">4. What is IPsec</a>
+    <a href="#modes">5. SA &amp; modes</a>
+    <a href="#ahesp">6. AH vs ESP</a>
+    <a href="#ike">7. IKE</a>
+    <a href="#takeaways">Takeaways</a>
+  </nav>
+
+  <div class="framing reveal">
+    <p><strong>The big picture.</strong> Last lecture gave us strong tools: encryption, signatures, Diffie-Hellman. But they all assume one thing: <em>you have the right key</em>. This lesson answers three simple questions.</p>
+    <p><strong>Part A:</strong> Who can I trust to tell me whose key is whose? <em>(PKI, CAs, KDCs, Kerberos)</em><br>
+       <strong>Part B:</strong> How do we protect every single IP packet on the network? <em>(IPsec: AH and ESP)</em><br>
+       <strong>Part C:</strong> How do two machines agree on keys and settings for IPsec without a human typing them in? <em>(IKE)</em></p>
+  </div>
+
+  <!-- =================================================== PART A -->
+  <div class="part-banner reveal"><span class="k">Part A</span><h2>Trusted intermediaries</h2></div>
+
+  <section class="block" id="trust">
+    <div class="block-head reveal"><span class="block-num">01</span><h2>Why do we need trust?</h2></div>
+    <p class="block-dek reveal">Encryption keeps secrets. It does not tell you <em>who</em> you are talking to.</p>
+
+    <p class="reveal">Alice wants to send Bob a secret, so she asks for Bob's public key. But Mallory sits in the middle of the network. She can swap Bob's key for her own. Alice encrypts with Mallory's key without knowing it, and Mallory reads everything. The maths was perfect; the <strong>key was wrong</strong>.</p>
+
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Interactive: can Mallory swap the key?</span>
+        <div class="btn-row"><button class="fbtn on" id="swapNo" type="button">Without a CA</button><button class="fbtn" id="swapYes" type="button">With a CA</button></div>
+      </div>
+      <div class="seq-head cols3">
+        <div class="party"><div class="avatar">A</div><div class="name">Alice</div></div>
+        <div class="party"><div class="avatar evil">M</div><div class="name">Mallory</div></div>
+        <div class="party"><div class="avatar">B</div><div class="name">Bob</div></div>
+      </div>
+      <div class="seq-log" id="swapLog"></div>
+      <div class="verdict idle" id="swapVerdict"><span class="icon">○</span><span id="swapText"></span></div>
+    </div>
+
+    <div class="definition reveal">
+      <span class="label">The idea</span>
+      <p>A <strong>trusted intermediary</strong> is a third party that everyone already trusts. It vouches for "this key belongs to this person". Examples: a <strong>Certification Authority (CA)</strong>, a <strong>Registration Authority (RA)</strong>, a <strong>Key Distribution Center (KDC)</strong>, and the <strong>Authentication Server (AS)</strong> in Kerberos.</p>
+    </div>
+
+    <h3 class="sub reveal">Three ways to trust a key</h3>
+    <div class="card-grid reveal">
+      <div class="card">
+        <svg viewBox="0 0 200 110"><line x1="50" y1="55" x2="150" y2="55" stroke="var(--good)" stroke-width="3" class="dash-anim"/><circle cx="50" cy="55" r="20" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><circle cx="150" cy="55" r="20" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><text x="50" y="61" text-anchor="middle" font-weight="700" fill="var(--accent-deep)" font-size="16">A</text><text x="150" y="61" text-anchor="middle" font-weight="700" fill="var(--accent-deep)" font-size="16">B</text></svg>
+        <h4>Direct trust</h4><p>Alice got Bob's key from Bob himself, for example face to face. Simple, but does not scale to millions of people.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 200 110"><g stroke="var(--good)" stroke-width="2.5" class="dash-anim"><line x1="100" y1="22" x2="55" y2="58"/><line x1="100" y1="22" x2="145" y2="58"/><line x1="55" y1="58" x2="30" y2="92"/><line x1="55" y1="58" x2="80" y2="92"/><line x1="145" y1="58" x2="145" y2="92"/></g><circle cx="100" cy="20" r="14" fill="var(--good-soft)" stroke="var(--good)" stroke-width="2"/><text x="100" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="var(--good)">Root</text><circle cx="55" cy="58" r="11" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><circle cx="145" cy="58" r="11" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><circle cx="30" cy="94" r="9" fill="var(--surface-tint)" stroke="var(--ink-faint)" stroke-width="2"/><circle cx="80" cy="94" r="9" fill="var(--surface-tint)" stroke="var(--ink-faint)" stroke-width="2"/><circle cx="145" cy="94" r="9" fill="var(--surface-tint)" stroke="var(--ink-faint)" stroke-width="2"/></svg>
+        <h4>Hierarchical trust</h4><p>A tree: Root CA &rarr; Intermediate CA &rarr; User. Trust the root and you can trust everything it signed. This is how HTTPS works.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 200 110"><g stroke="var(--violet)" stroke-width="2" class="dash-anim"><line x1="40" y1="30" x2="110" y2="20"/><line x1="110" y1="20" x2="165" y2="55"/><line x1="40" y1="30" x2="70" y2="85"/><line x1="70" y1="85" x2="140" y2="92"/><line x1="140" y1="92" x2="165" y2="55"/><line x1="110" y1="20" x2="70" y2="85"/><line x1="40" y1="30" x2="140" y2="92"/></g><g fill="var(--violet-soft)" stroke="var(--violet)" stroke-width="2"><circle cx="40" cy="30" r="10"/><circle cx="110" cy="20" r="10"/><circle cx="165" cy="55" r="10"/><circle cx="70" cy="85" r="10"/><circle cx="140" cy="92" r="10"/></g></svg>
+        <h4>Web of trust</h4><p>No boss. People sign each other's keys: "I know Bob, this is his key." Used by PGP email.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== PKI -->
+  <section class="block" id="pki">
+    <div class="block-head reveal"><span class="block-num">02</span><h2>PKI, CAs and digital certificates</h2></div>
+    <p class="block-dek reveal">A Public Key Infrastructure is the whole system that creates, hands out, checks and cancels certificates.</p>
+
+    <p class="reveal">Think of a <strong>passport office</strong>. You show your birth certificate to a clerk (they check who you are), the office prints and stamps your passport, and border officers everywhere trust the stamp. A PKI does the same job for public keys.</p>
+
+    <div class="card-grid reveal">
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18L12 3 3 10zM5 10v8M9 10v8M15 10v8M19 10v8M3 21h18"/></svg></span><h4>Certification Authority (CA)</h4><p>Issues and <strong>signs</strong> certificates. Keeps the revocation list. The "passport office". Examples: DigiCert, Let's Encrypt, GlobalSign.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-5-5"/></svg></span><h4>Registration Authority (RA)</h4><p>Checks your <strong>identity</strong> before the CA signs. The "clerk at the counter". Passes verified requests to the CA.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><h4>Certificate Repository</h4><p>A public place that stores certificates and lists of cancelled (revoked) ones.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="11" rx="1"/><path d="M2 19h20"/></svg></span><h4>End entities</h4><p>The users, servers and apps that hold and use certificates.</p></div>
+    </div>
+
+    <h3 class="sub reveal">How Alice gets a certificate for her website</h3>
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Animated: the PKI workflow</span>
+        <div class="btn-row"><button class="fbtn" id="pkiReset" type="button">Reset</button><button class="fbtn" id="pkiPrev" type="button">&larr; Prev</button><button class="fbtn primary" id="pkiNext" type="button">Next &rarr;</button></div>
+      </div>
+      <div class="pki-track">
+        <div class="pki-rail"></div>
+        <div class="pki-token" id="pkiToken"></div>
+        <div class="party"><div class="avatar" id="pkiN0">A</div><div class="name">Alice (website)</div></div>
+        <div class="party"><div class="avatar" id="pkiN1">RA</div><div class="name">Registration Auth.</div></div>
+        <div class="party"><div class="avatar trusted" id="pkiN2">CA</div><div class="name">Certification Auth.</div></div>
+        <div class="party"><div class="avatar" id="pkiN3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg></div><div class="name">Visitors' browsers</div></div>
+      </div>
+      <div class="step-caption" id="pkiCaption"></div>
+    </div>
+
+    <h3 class="sub reveal">What is inside a certificate?</h3>
+    <p class="reveal">A certificate is just a small signed document in the <strong>X.509</strong> format. Click each line to see what it means.</p>
+    <div class="widget reveal cert-layout">
+      <div class="cert">
+        <div class="seal">CA<br>signed</div>
+        <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> X.509 Certificate</h4>
+        <div class="cert-field" data-i="0"><span class="fk">Subject</span><span class="fv">www.alice-shop.lk</span></div>
+        <div class="cert-field" data-i="1"><span class="fk">Public key</span><span class="fv mono">RSA 2048 &middot; 3a:9f:c2&hellip;</span></div>
+        <div class="cert-field" data-i="2"><span class="fk">Issuer</span><span class="fv">Let's Encrypt R3</span></div>
+        <div class="cert-field" data-i="3"><span class="fk">Valid</span><span class="fv">01 Oct 2026 &rarr; 30 Dec 2026</span></div>
+        <div class="cert-field" data-i="4"><span class="fk">Serial no.</span><span class="fv mono">1042</span></div>
+        <div class="cert-field" data-i="5"><span class="fk">Signature</span><span class="fv mono">CA's signature over all of the above</span></div>
+      </div>
+      <div class="step-caption" id="certCaption">Click a field above.</div>
+    </div>
+    <p class="caption reveal">Certificates are used for HTTPS, encrypted email and code signing.</p>
+
+    <h3 class="sub reveal">Chain of trust</h3>
+    <p class="reveal">Your browser does not know every website. It only knows a small list of <strong>root CAs</strong> built into it. The root signs an intermediate CA, and the intermediate signs the website. The browser checks each signature going up the chain until it reaches a root it already trusts.</p>
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Interactive: verify a certificate chain</span>
+        <div class="btn-row"><button class="fbtn primary" id="chainReal" type="button">Check real site</button><button class="fbtn danger" id="chainFake" type="button">Check fake site</button></div>
+      </div>
+      <div class="chain">
+        <div class="chain-node" id="ch2"><div><div class="t" id="ch2t">Root CA</div><div class="d" id="ch2d">Already stored in your browser</div></div><span class="st" id="ch2s">⋯</span></div>
+        <div class="chain-link"></div>
+        <div class="chain-node" id="ch1"><div><div class="t" id="ch1t">Intermediate CA</div><div class="d">Signed by the root</div></div><span class="st" id="ch1s">⋯</span></div>
+        <div class="chain-link"></div>
+        <div class="chain-node" id="ch0"><div><div class="t" id="ch0t">www.alice-shop.lk</div><div class="d">Signed by the intermediate</div></div><span class="st" id="ch0s">⋯</span></div>
+      </div>
+      <div class="verdict idle" id="chainVerdict"><span class="icon">○</span><span id="chainText">Press a button to check the chain from the bottom up.</span></div>
+    </div>
+
+    <h3 class="sub reveal">Cancelling a certificate (revocation)</h3>
+    <p class="reveal">Sometimes a certificate must be cancelled before it expires: the <strong>private key was stolen</strong>, the <strong>employee left</strong> the organization, or a <strong>policy was broken</strong>. There are two ways to check if a certificate was cancelled:</p>
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Interactive: is this certificate still OK?</span>
+        <div class="ctrl" style="min-width: 220px;"><select id="revSel"><option value="1042">Serial 1042 (alice-shop.lk)</option><option value="2077">Serial 2077 (stolen-key.lk)</option></select></div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg> CRL &mdash; Certificate Revocation List</h4>
+          <p style="font-size: 14.5px; color: var(--ink-soft);">The CA publishes a list of all cancelled serial numbers. The browser downloads it and searches it. Like checking a printed "stolen cards" list.</p>
+          <button class="fbtn" id="crlBtn" type="button">Check with CRL</button>
+          <ul id="crlOut" style="margin-top: 10px;"></ul>
+        </div>
+        <div class="panel">
+          <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg> OCSP &mdash; Online Certificate Status Protocol</h4>
+          <p style="font-size: 14.5px; color: var(--ink-soft);">The browser asks the CA's server about <em>one</em> certificate and gets back "good" or "revoked". Like phoning the bank about one card.</p>
+          <button class="fbtn" id="ocspBtn" type="button">Check with OCSP</button>
+          <ul id="ocspOut" style="margin-top: 10px;"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== Kerberos -->
+  <section class="block" id="kerberos">
+    <div class="block-head reveal"><span class="block-num">03</span><h2>Key Distribution Centers and Kerberos</h2></div>
+    <p class="block-dek reveal">The same "trusted middle person" idea, but using only secret (symmetric) keys.</p>
+
+    <p class="reveal">With symmetric encryption, every pair of people needs a shared secret key. How do they get one safely? A <strong>Key Distribution Center (KDC)</strong> solves it: it shares one secret key with each user, and when Alice wants to talk to a server, the KDC creates a fresh <strong>session key</strong> and hands it safely to both.</p>
+
+    <div class="definition reveal">
+      <span class="label">Kerberos in one sentence</span>
+      <p>Kerberos is a network login protocol from MIT (Project Athena). You prove who you are <strong>once</strong>, get a "pass", and then use that pass to get tickets for each service, without ever sending your password over the network.</p>
+    </div>
+
+    <p class="reveal"><strong>Theme park analogy:</strong> at the gate you show ID and get a <strong>wristband</strong> (Ticket Granting Ticket). At each ride you show the wristband to a ticket booth and get a <strong>ride ticket</strong> (service ticket). The ride operator only checks the ticket. The KDC has two parts: the <strong>Authentication Server (AS)</strong> = the gate, and the <strong>Ticket Granting Server (TGS)</strong> = the ticket booth.</p>
+
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Animated: Kerberos login</span>
+        <div class="btn-row"><button class="fbtn" id="kbReset" type="button">Reset</button><button class="fbtn primary" id="kbNext" type="button">Next &rarr;</button></div>
+      </div>
+      <div class="seq-head cols4">
+        <div class="party"><div class="avatar" id="kbA0">A</div><div class="name">Alice</div></div>
+        <div class="party"><div class="avatar trusted" id="kbA1">AS</div><div class="name">Auth Server</div></div>
+        <div class="party"><div class="avatar trusted" id="kbA2">TGS</div><div class="name">Ticket Server</div></div>
+        <div class="party"><div class="avatar" id="kbA3"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/><path d="M7 6.5h.01M7 17.5h.01"/></svg></div><div class="name">File Server</div></div>
+      </div>
+      <div class="seq-log">
+        <div class="seq-msg cols4" data-step="1"><div class="bar" style="--from:1; --to:3;">"I'm Alice, I want to log in" &rarr;</div></div>
+        <div class="seq-msg cols4" data-step="2"><div class="bar ok" style="--from:1; --to:3;">&larr; <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z"/><path d="M15 6v12" stroke-dasharray="2 2"/></svg> TGT (locked with Alice's password key)</div></div>
+        <div class="seq-msg cols4" data-step="3"><div class="bar" style="--from:1; --to:4;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z"/><path d="M15 6v12" stroke-dasharray="2 2"/></svg> TGT + "I want the File Server" &rarr;</div></div>
+        <div class="seq-msg cols4" data-step="4"><div class="bar ok" style="--from:1; --to:4;">&larr; <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z"/><path d="M15 6v12" stroke-dasharray="2 2"/></svg> Service ticket + session key</div></div>
+        <div class="seq-msg cols4" data-step="5"><div class="bar" style="--from:1; --to:5;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z"/><path d="M15 6v12" stroke-dasharray="2 2"/></svg> Service ticket + timestamp &rarr;</div></div>
+        <div class="seq-msg cols4" data-step="6"><div class="bar ok" style="--from:1; --to:5;">&larr; "Welcome Alice, it's really me" &#10003; access granted</div></div>
+      </div>
+      <div class="step-caption" id="kbCaption"></div>
+    </div>
+
+    <div class="two-col reveal">
+      <div class="panel" style="background: var(--good-soft);">
+        <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg> Advantages</h4>
+        <ul><li>Password never sent over the network</li><li>Mutual authentication (both sides proven)</li><li>Central key management</li><li>Scales to large organizations, single sign-on</li></ul>
+      </div>
+      <div class="panel" style="background: var(--bad-soft);">
+        <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Disadvantages</h4>
+        <ul><li>KDC is a single point of failure</li><li>All clocks must be in sync (tickets use timestamps)</li><li>Complex to set up</li><li>If the KDC is hacked, everything is exposed</li></ul>
+      </div>
+    </div>
+
+    <h3 class="sub reveal">PKI vs Kerberos</h3>
+    <div class="table-wrap reveal">
+      <table class="data-table">
+        <thead><tr><th>Feature</th><th>PKI</th><th>Kerberos</th></tr></thead>
+        <tbody>
+          <tr><td class="category">Crypto type</td><td>Asymmetric (public/private keys)</td><td>Symmetric (shared secret keys)</td></tr>
+          <tr><td class="category">Who you trust</td><td>CA hierarchy</td><td>One central KDC</td></tr>
+          <tr><td class="category">Proof you carry</td><td>Digital certificate</td><td>Ticket</td></tr>
+          <tr><td class="category">Scale</td><td>Global (the whole Internet)</td><td>One organization</td></tr>
+          <tr><td class="category">Example</td><td>HTTPS, email, VPN, smart cards</td><td>Windows Active Directory, Linux login, enterprise SSO</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =================================================== PART B -->
+  <div class="part-banner reveal"><span class="k">Part B</span><h2>IPsec: AH and ESP</h2></div>
+
+  <section class="block" id="ipsec">
+    <div class="block-head reveal"><span class="block-num">04</span><h2>What is IPsec?</h2></div>
+    <p class="block-dek reveal">Security added at the network layer, so every IP packet can be protected.</p>
+
+    <p class="reveal">IP, TCP and UDP were designed when the Internet was a small, friendly network. They have <strong>no built-in security</strong>. Anyone on the path can:</p>
+    <div class="card-grid reveal">
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 8l5 5M22 8l-5 5"/></svg></span><h4>IP spoofing</h4><p>Fake the "from" address on a packet.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg></span><h4>Data tampering</h4><p>Change the contents on the way.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3"/></svg></span><h4>Replay</h4><p>Record a packet and send it again later.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></span><h4>Eavesdropping</h4><p>Simply read the traffic.</p></div>
+    </div>
+
+    <div class="definition reveal">
+      <span class="label">Definition</span>
+      <p><strong>IPsec</strong> (Internet Protocol Security) is a <em>suite</em> of protocols that authenticates and encrypts each IP packet. It works at the <strong>network layer (Layer 3)</strong>, so apps do not need to change: it is <em>transparent</em> to them. Defined in IETF RFCs 4301&ndash;4309.</p>
+    </div>
+
+    <h3 class="sub reveal">Five security services</h3>
+    <div class="table-wrap reveal">
+      <table class="data-table">
+        <thead><tr><th>Service</th><th>In plain words</th><th>Stops</th></tr></thead>
+        <tbody>
+          <tr><td class="category">Authentication</td><td>The packet really came from who it says</td><td>Spoofing</td></tr>
+          <tr><td class="category">Integrity</td><td>Nobody changed it (checked with a hash/HMAC)</td><td>Tampering</td></tr>
+          <tr><td class="category">Confidentiality</td><td>Nobody can read it (encryption)</td><td>Eavesdropping</td></tr>
+          <tr><td class="category">Replay protection</td><td>Old packets sent again are rejected</td><td>Replay</td></tr>
+          <tr><td class="category">Access control</td><td>Only allowed traffic gets through (policies)</td><td>Unwanted traffic</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub reveal">The building blocks</h3>
+    <div class="card-grid reveal">
+      <div class="card"><span class="tag">Data plane</span><h4>AH &amp; ESP</h4><p>The two protocols that actually protect packets. AH = protocol 51, ESP = protocol 50.</p></div>
+      <div class="card"><span class="tag">Control plane</span><h4>IKE</h4><p>Negotiates keys and settings before any data flows (Part C).</p></div>
+      <div class="card"><span class="tag">Rules</span><h4>SPD</h4><p>Security <strong>Policy</strong> Database: <em>which</em> traffic to protect, which algorithms, which mode.</p></div>
+      <div class="card"><span class="tag">State</span><h4>SAD</h4><p>Security <strong>Association</strong> Database: the active SAs with their keys and settings.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="modes">
+    <div class="block-head reveal"><span class="block-num">05</span><h2>Security Associations and modes</h2></div>
+    <p class="block-dek reveal">An agreement about how to protect packets, and two ways to wrap a packet.</p>
+
+    <h3 class="sub reveal">Security Association (SA)</h3>
+    <p class="reveal">An <strong>SA</strong> is a <strong>one-way</strong> agreement: "packets from me to you are protected with <em>this</em> protocol, <em>this</em> algorithm and <em>this</em> key." Each SA has an ID number called the <strong>SPI</strong> (Security Parameter Index), which travels in every packet so the receiver knows which keys to use. Because an SA is one-way, a normal two-way conversation needs <strong>two SAs</strong>.</p>
+
+    <div class="widget reveal">
+      <div class="widget-head"><span class="widget-title">Diagram: two one-way SAs</span></div>
+      <svg id="saSvg" viewBox="0 0 620 200">
+        <defs>
+          <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--good)"/></marker>
+          <marker id="arrV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
+        </defs>
+        <rect x="10" y="50" width="110" height="100" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="65" y="105" text-anchor="middle" fill="var(--accent-deep)" font-weight="700">Host A</text>
+        <rect x="500" y="50" width="110" height="100" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="555" y="105" text-anchor="middle" fill="var(--accent-deep)" font-weight="700">Host B</text>
+        <line x1="125" y1="78" x2="495" y2="78" stroke="var(--good)" stroke-width="3" class="dash-anim" marker-end="url(#arrG)"/>
+        <text x="310" y="66" text-anchor="middle" fill="var(--good)">SA #1 (outbound for A) &middot; SPI 0x1001 &middot; ESP, AES</text>
+        <line x1="495" y1="122" x2="125" y2="122" stroke="var(--violet)" stroke-width="3" class="dash-anim" marker-end="url(#arrV)"/>
+        <text x="310" y="145" text-anchor="middle" fill="var(--violet)">SA #2 (inbound for A) &middot; SPI 0x2002 &middot; ESP, AES</text>
+        <text x="310" y="185" text-anchor="middle" fill="var(--ink-faint)" font-size="12">Each SA holds: SPI, destination IP, protocol (AH/ESP), keys and algorithms</text>
+      </svg>
+    </div>
+
+    <h3 class="sub reveal">Transport mode vs Tunnel mode</h3>
+    <p class="reveal">Think of posting a letter.</p>
+    <div class="env-stage reveal">
+      <div class="env-box">
+        <svg viewBox="0 0 250 130" class="bob">
+          <rect x="35" y="25" width="180" height="90" rx="6" fill="var(--surface)" stroke="var(--ink-faint)" stroke-width="2"/>
+          <path d="M35 25 L125 75 L215 25" fill="none" stroke="var(--ink-faint)" stroke-width="2"/>
+          <text x="55" y="105" font-size="11" fill="var(--ink-soft)" font-family="JetBrains Mono">To: Bob's PC</text>
+          <rect x="140" y="85" width="60" height="22" rx="4" fill="var(--warn-soft)" stroke="var(--warn)"/>
+          <svg x="146" y="88" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><text x="178" y="100" text-anchor="middle" font-size="11" fill="var(--warn)">letter</text>
+        </svg>
+        <h4>Transport mode</h4>
+        <p>Only the <strong>letter inside</strong> (payload) is protected. The original address (IP header) stays visible. Used <strong>host-to-host</strong>, e.g. a secure TCP session between two computers.</p>
+      </div>
+      <div class="env-box">
+        <svg viewBox="0 0 250 130" class="bob">
+          <rect x="15" y="12" width="220" height="110" rx="10" fill="var(--violet-soft)" stroke="var(--violet)" stroke-width="2"/>
+          <text x="30" y="32" font-size="11" fill="var(--violet)" font-family="JetBrains Mono">To: Office B gateway</text>
+          <rect x="55" y="45" width="140" height="66" rx="5" fill="var(--surface)" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="4 3"/>
+          <svg x="67" y="63" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><text x="132" y="75" text-anchor="middle" font-size="11" fill="var(--ink-soft)">whole original</text>
+          <text x="125" y="92" text-anchor="middle" font-size="11" fill="var(--ink-soft)">envelope inside</text>
+        </svg>
+        <h4>Tunnel mode</h4>
+        <p>The <strong>whole original packet</strong> goes inside a new one with a new address. Outsiders only see gateway addresses. Used for <strong>VPNs</strong>, gateway-to-gateway.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="ahesp">
+    <div class="block-head reveal"><span class="block-num">06</span><h2>AH and ESP</h2></div>
+    <p class="block-dek reveal">AH = a tamper-proof seal (no secrecy). ESP = a locked box (secrecy, plus an optional seal).</p>
+
+    <div class="two-col reveal">
+      <div class="panel">
+        <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg> Authentication Header (AH) &middot; protocol 51</h4>
+        <ul>
+          <li>Authentication + integrity, <strong>no encryption</strong></li>
+          <li>Protects the payload <em>and</em> parts of the IP header</li>
+          <li>Uses an HMAC (e.g. HMAC-SHA)</li>
+          <li>Fields: Next Header, Payload Length, Reserved, SPI, Sequence Number, Authentication Data (ICV)</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg> Encapsulating Security Payload (ESP) &middot; protocol 50</h4>
+        <ul>
+          <li>Encryption + integrity + authentication + anti-replay</li>
+          <li>The <strong>most used</strong> IPsec protocol</li>
+          <li>Ciphers such as AES (older: DES, 3DES)</li>
+          <li>Fields: SPI, Sequence Number, Payload (encrypted), Padding + Pad Length, Next Header, ICV (optional)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="sub reveal">Build a packet</h3>
+    <p class="reveal">Pick a protocol and a mode. The diagram shows where each header goes, which parts are <strong>encrypted</strong>, and which parts are <strong>authenticated</strong> (protected from changes).</p>
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Interactive: IPsec packet builder</span>
+        <div class="btn-row">
+          <button class="fbtn" data-proto="none" type="button">No IPsec</button>
+          <button class="fbtn" data-proto="ah" type="button">AH</button>
+          <button class="fbtn on" data-proto="esp" type="button">ESP</button>
+          <span style="width: 8px;"></span>
+          <button class="fbtn on" data-mode="transport" type="button">Transport</button>
+          <button class="fbtn" data-mode="tunnel" type="button">Tunnel</button>
+        </div>
+      </div>
+      <div class="pkt-wrap">
+        <div class="pkt" id="pktRow"></div>
+        <div class="lane-label">Encrypted</div>
+        <div class="pkt-row" id="encRow"></div>
+        <div class="lane-label">Authenticated (integrity protected)</div>
+        <div class="pkt-row" id="authRow"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background: var(--violet-soft); border: 1px solid var(--violet);"></i>New IP header</span>
+        <span><i style="background: var(--surface-tint); border: 1px solid var(--line);"></i>Original IP header</span>
+        <span><i style="background: var(--warn-soft); border: 1px solid var(--warn);"></i>IPsec header/trailer</span>
+        <span><i style="background: var(--accent-soft); border: 1px solid var(--accent-line);"></i>Your data</span>
+        <span><i style="background: var(--good);"></i>Authenticated</span>
+        <span><i style="background: repeating-linear-gradient(90deg, var(--good) 0 6px, transparent 6px 10px);"></i>Partly (fields that never change)</span>
+      </div>
+      <div class="eve-box" id="eveBox"></div>
+      <div class="step-caption" id="pktCaption"></div>
+    </div>
+
+    <h3 class="sub reveal">Anti-replay: the sequence number</h3>
+    <p class="reveal">Every AH/ESP packet carries a <strong>sequence number</strong> that goes up by one each time. The receiver remembers which numbers it has seen. If Eve records packet #2 ("pay Rs 1000") and sends it again, the receiver says "already got #2" and drops it.</p>
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Interactive: try a replay attack</span>
+        <div class="btn-row"><button class="fbtn primary" id="rpSend" type="button">Alice sends next packet</button><button class="fbtn danger" id="rpReplay" type="button">Eve replays an old packet</button><button class="fbtn" id="rpReset" type="button">Reset</button></div>
+      </div>
+      <div class="lane-label" style="margin-top: 0;">Receiver (Bob) log</div>
+      <div class="replay-lane" id="rpLane"></div>
+      <div class="step-caption" id="rpCaption">Send a few packets first, then let Eve replay one.</div>
+    </div>
+
+    <h3 class="sub reveal">Why AH breaks with NAT</h3>
+    <p class="reveal">Most home and office routers use <strong>NAT</strong>: they rewrite the source IP address of outgoing packets. AH protects the IP header, so the receiver sees a changed address and thinks the packet was tampered with. ESP does not protect the outer IP header, so it survives NAT. (In practice ESP is also wrapped in UDP port 4500 to get through NAT, called NAT-Traversal.)</p>
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Animated: a packet through a NAT router</span>
+        <div class="btn-row"><button class="fbtn" id="natAH" type="button">Send with AH</button><button class="fbtn" id="natESP" type="button">Send with ESP</button></div>
+      </div>
+      <div class="nat-stage" id="natStage">
+        <div class="nat-rail"></div>
+        <div class="nat-node" style="left: 0;"><div class="ic"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="11" rx="1"/><path d="M2 19h20"/></svg></div>Alice<br>10.0.0.5</div>
+        <div class="nat-node router" style="left: calc(50% - 46px);"><div class="ic"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 17.5h.01M10 17.5h.01M12 14V9M8.5 7a5 5 0 0 1 7 0M6 4.5a8.5 8.5 0 0 1 12 0"/></svg></div>NAT router</div>
+        <div class="nat-node" style="right: 0;"><div class="ic"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>Server</div>
+        <div class="nat-pkt" id="natPkt" style="left: 46px;">src 10.0.0.5</div>
+      </div>
+      <div class="verdict idle" id="natVerdict"><span class="icon">○</span><span id="natText">Pick AH or ESP to send a packet.</span></div>
+    </div>
+
+    <h3 class="sub reveal">AH vs ESP at a glance</h3>
+    <div class="table-wrap reveal">
+      <table class="data-table">
+        <thead><tr><th>Feature</th><th>AH</th><th>ESP</th></tr></thead>
+        <tbody>
+          <tr><td class="category">Encryption</td><td>&#10007; No</td><td>&#10003; Yes</td></tr>
+          <tr><td class="category">Authentication</td><td>&#10003; Yes</td><td>Optional (almost always turned on)</td></tr>
+          <tr><td class="category">Integrity</td><td>&#10003; Yes</td><td>&#10003; Yes</td></tr>
+          <tr><td class="category">IP header protection</td><td>Partial</td><td>None (outer header)</td></tr>
+          <tr><td class="category">Works through NAT</td><td>&#10007; Hard</td><td>&#10003; Yes (with NAT-T)</td></tr>
+          <tr><td class="category">Protocol number</td><td>51</td><td>50</td></tr>
+          <tr><td class="category">Typical use</td><td>Data authentication only</td><td>Confidentiality + authentication, VPNs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub reveal">A packet's journey</h3>
+    <div class="flow-strip reveal" id="journey">
+      <div class="flow-step"><span class="k">Sender 1</span><h4>Build packet</h4><p>Normal IP packet.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Sender 2</span><h4>Check SPD</h4><p>"Should this be protected?"</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Sender 3</span><h4>Add AH/ESP</h4><p>Encrypt / authenticate, send.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Receiver 1</span><h4>Find SA</h4><p>Look up keys using the SPI.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Receiver 2</span><h4>Verify &amp; decrypt</h4><p>Bad check &rarr; drop it.</p></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span class="k">Receiver 3</span><h4>Deliver</h4><p>Hand to TCP/UDP.</p></div>
+    </div>
+
+    <div class="card-grid reveal">
+      <div class="card"><h4>Where IPsec is used</h4><p>VPNs, secure remote access, site-to-site corporate tunnels, IPv6, protecting routing updates (OSPF, BGP).</p></div>
+      <div class="card"><h4>Performance cost</h4><p>Encryption uses CPU, extra headers add latency. Hardware crypto engines help. Always a trade-off between strength and speed.</p></div>
+      <div class="card"><h4>Pros &amp; cons</h4><p><strong>Pros:</strong> strong, transparent to apps, standard. <strong>Cons:</strong> complex to configure, NAT trouble (AH), overhead.</p></div>
+    </div>
+
+    <div class="definition warn reveal">
+      <span class="label">Good to know</span>
+      <p><strong>IPv6:</strong> IPsec was originally a "must implement" for IPv6. Later standards (RFC 6434, RFC 8504) relaxed this to "should implement", so not every IPv6 device uses it.</p>
+      <p><strong>Old algorithms:</strong> MD5, DES and 3DES appear in older material but are considered weak today. Modern setups use AES (often AES-GCM) and SHA-2.</p>
+    </div>
+  </section>
+
+  <!-- =================================================== PART C -->
+  <div class="part-banner reveal"><span class="k">Part C</span><h2>IPsec: IKE</h2></div>
+
+  <section class="block" id="ike">
+    <div class="block-head reveal"><span class="block-num">07</span><h2>IKE: Internet Key Exchange</h2></div>
+    <p class="block-dek reveal">The "brain" that sets up IPsec. AH and ESP do the work; IKE decides the keys and the rules.</p>
+
+    <p class="reveal">IPsec needs keys and settings (which cipher, which hash, which key, how long it lasts) before it can protect anything. Typing these into every device by hand is slow and error-prone. <strong>IKE automates</strong> key creation, authentication and security setup.</p>
+
+    <div class="definition reveal">
+      <span class="label">Two phases</span>
+      <p><strong>Phase 1 &mdash; build trust:</strong> the two sides agree on algorithms, run a Diffie-Hellman exchange to create a shared secret, and prove their identities. Result: a secure channel called the <strong>IKE SA</strong>.</p>
+      <p><strong>Phase 2 &mdash; build the tunnel:</strong> inside that secure channel, they create the <strong>IPsec SAs</strong> (cipher, keys, key lifetime) that AH/ESP will use for real data.</p>
+    </div>
+
+    <div class="widget reveal">
+      <div class="widget-head">
+        <span class="widget-title">Animated: IKE builds a site-to-site VPN</span>
+        <div class="btn-row"><button class="fbtn" id="ikeReset" type="button">Reset</button><button class="fbtn" id="ikePrev" type="button">&larr; Prev</button><button class="fbtn primary" id="ikeNext" type="button">Next &rarr;</button></div>
+      </div>
+      <svg id="ikeSvg" viewBox="0 0 600 270">
+        <defs>
+          <marker id="ikeArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--good)"/></marker>
+          <marker id="ikeArr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
+        </defs>
+        <!-- buildings -->
+        <g>
+          <rect x="15" y="80" width="80" height="120" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+          <g fill="var(--accent)"><rect x="30" y="98" width="14" height="14" rx="2"/><rect x="66" y="98" width="14" height="14" rx="2"/><rect x="30" y="126" width="14" height="14" rx="2"/><rect x="66" y="126" width="14" height="14" rx="2"/><rect x="45" y="165" width="20" height="35" rx="2"/></g>
+          <text x="55" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">Office A</text>
+          <rect x="505" y="80" width="80" height="120" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+          <g fill="var(--accent)"><rect x="520" y="98" width="14" height="14" rx="2"/><rect x="556" y="98" width="14" height="14" rx="2"/><rect x="520" y="126" width="14" height="14" rx="2"/><rect x="556" y="126" width="14" height="14" rx="2"/><rect x="535" y="165" width="20" height="35" rx="2"/></g>
+          <text x="545" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">Office B</text>
+        </g>
+        <!-- internet -->
+        <text x="300" y="250" text-anchor="middle" font-size="12" fill="var(--ink-faint)">the public Internet</text>
+        <line x1="100" y1="140" x2="500" y2="140" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 5"/>
+        <!-- message bubble -->
+        <g id="ikeMsg" class="fade" opacity="0">
+          <rect x="130" y="16" width="340" height="44" rx="10" fill="var(--warn-soft)" stroke="var(--warn)"/>
+          <text id="ikeMsgT" x="300" y="43" text-anchor="middle" font-size="13" font-weight="700" fill="var(--warn)"></text>
+        </g>
+        <!-- DH keys -->
+        <g id="ikeKeys" class="fade" opacity="0">
+          <svg x="43" y="50" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M16 7l3 3M18 5l2 2"/></svg>
+          <svg x="533" y="50" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M16 7l3 3M18 5l2 2"/></svg>
+        </g>
+        <!-- IKE SA pipe -->
+        <rect id="ikePipe" class="fade" opacity="0" x="105" y="100" width="390" height="80" rx="40" fill="var(--good-soft)" stroke="var(--good)" stroke-width="2.5"/>
+        <text id="ikePipeL" class="fade" opacity="0" x="300" y="196" text-anchor="middle" font-size="12" fill="var(--good)" font-weight="700">IKE SA (secure control channel)</text>
+        <!-- IPsec SAs -->
+        <g id="ikeSAs" class="fade" opacity="0">
+          <line x1="130" y1="125" x2="470" y2="125" stroke="var(--good)" stroke-width="3" marker-end="url(#ikeArr)"/>
+          <line x1="470" y1="157" x2="130" y2="157" stroke="var(--violet)" stroke-width="3" marker-end="url(#ikeArr2)"/>
+          <text x="300" y="119" text-anchor="middle" font-size="11" fill="var(--good)">IPsec SA A&rarr;B</text>
+          <text x="300" y="173" text-anchor="middle" font-size="11" fill="var(--violet)">IPsec SA B&rarr;A</text>
+        </g>
+        <!-- data packets -->
+        <g id="ikeData" class="fade" opacity="0">
+          <g class="flowR"><rect x="135" y="131" width="26" height="14" rx="3" fill="var(--accent)"/></g>
+          <g class="flowR" style="animation-delay: -1.1s;"><rect x="135" y="131" width="26" height="14" rx="3" fill="var(--accent)"/></g>
+          <g class="flowL"><rect x="440" y="136" width="26" height="14" rx="3" fill="var(--violet)" opacity="0.8"/></g>
+        </g>
+      </svg>
+      <div class="step-caption" id="ikeCaption"></div>
+    </div>
+
+    <h3 class="sub reveal">How do the two sides prove who they are?</h3>
+    <div class="card-grid reveal">
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><h4>Pre-shared key</h4><p>Both sides are configured with the same secret password. Easy, but hard to manage for many sites.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><h4>Digital certificates</h4><p>Each side shows a certificate signed by a CA (Part A!). Best for large networks.</p></div>
+      <div class="card"><span class="emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M16 7l3 3M18 5l2 2"/></svg></span><h4>Public keys</h4><p>Each side signs with its private key; the other checks with the known public key.</p></div>
+    </div>
+
+    <div class="card-grid reveal">
+      <div class="card"><h4>What IKE gives you</h4><p>Automatic key management, mutual authentication, agreement on algorithms <em>before</em> any data flows, and <strong>periodic rekeying</strong> (fresh keys for long sessions).</p></div>
+      <div class="card"><h4>Where you meet it</h4><p>Site-to-site VPNs (two offices) and remote-access VPNs (a laptop to the office). Implementations: strongSwan (Linux), Cisco, Windows IPsec. (OpenVPN uses similar ideas but is TLS-based, not IKE.)</p></div>
+    </div>
+
+    <h3 class="sub reveal">IKEv1 vs IKEv2</h3>
+    <div class="table-wrap reveal">
+      <table class="data-table">
+        <thead><tr><th>Feature</th><th>IKEv1</th><th>IKEv2</th></tr></thead>
+        <tbody>
+          <tr><td class="category">Published</td><td>1998 (RFC 2409)</td><td>2005 (RFC 4306); current spec RFC 7296 (2014)</td></tr>
+          <tr><td class="category">Messages to set up</td><td>More (6&ndash;9)</td><td>Fewer (4)</td></tr>
+          <tr><td class="category">Speed</td><td>Slower</td><td>Faster</td></tr>
+          <tr><td class="category">Reliability &amp; security</td><td>Moderate</td><td>Stronger, more reliable</td></tr>
+          <tr><td class="category">Mobile users &amp; NAT</td><td>Add-ons needed</td><td>Built in (survives network changes)</td></tr>
+          <tr><td class="category">Common use</td><td>Legacy systems</td><td>Modern VPNs (recommended)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two-col reveal">
+      <div class="panel" style="background: var(--good-soft);"><h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg> Benefits</h4><ul><li>Reduces human error</li><li>Saves configuration time</li><li>Automatic, consistent security</li><li>Supports large networks</li></ul></div>
+      <div class="panel" style="background: var(--bad-soft);"><h4><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Limitations</h4><ul><li>Configuration can be tricky</li><li>Older versions have compatibility issues</li><li>Moving to IKEv2 is recommended</li></ul></div>
+    </div>
+  </section>
+
+  <!-- =================================================== Takeaways -->
+  <section class="block" id="takeaways">
+    <div class="block-head reveal"><span class="block-num">08</span><h2>Key takeaways</h2></div>
+    <div class="takeaway reveal">
+      <span class="label">Remember these</span>
+      <ol>
+        <li>Encryption is useless if you have the wrong key. <strong>Trusted intermediaries</strong> vouch for who owns which key.</li>
+        <li><strong>PKI</strong>: the RA checks identity, the CA signs a <strong>certificate</strong> (X.509) binding a name to a public key. Browsers follow the <strong>chain of trust</strong> to a root CA. Cancelled certificates are found with <strong>CRL</strong> or <strong>OCSP</strong>.</li>
+        <li><strong>Kerberos</strong> uses a KDC (AS + TGS) and symmetric keys: log in once, get a <strong>TGT</strong>, swap it for <strong>service tickets</strong>. Password never crosses the network.</li>
+        <li><strong>IPsec</strong> protects IP packets at Layer 3. An <strong>SA</strong> is one-way and identified by an <strong>SPI</strong>. <strong>Transport</strong> mode protects the payload; <strong>tunnel</strong> mode wraps the whole packet (VPNs).</li>
+        <li><strong>AH</strong> = integrity + authentication, no encryption, breaks with NAT. <strong>ESP</strong> = encryption + integrity + authentication + anti-replay, the one used in practice.</li>
+        <li><strong>IKE</strong> sets up IPsec automatically in two phases: Phase 1 builds a trusted channel (DH + authentication), Phase 2 creates the IPsec SAs. Use <strong>IKEv2</strong>.</li>
+      </ol>
+    </div>
+
+    <h3 class="sub reveal">Quick self-check (click a card to flip)</h3>
+    <div class="flash-grid reveal" id="flashGrid"></div>
+  </section>
+
+  <div class="foot">
+    <span>SE5101</span>
+    <span>sachin@foc.sab.ac.lk</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function $(id) { return document.getElementById(id); }
+  var ICONS = {"lock": "<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/>", "key": "<circle cx=\"7.5\" cy=\"15.5\" r=\"4.5\"/><path d=\"M10.7 12.3 21 2M16 7l3 3M18 5l2 2\"/>", "bank": "<path d=\"M3 10h18L12 3 3 10zM5 10v8M9 10v8M15 10v8M19 10v8M3 21h18\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m21 21-5-5\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3\"/>", "laptop": "<rect x=\"4\" y=\"4\" width=\"16\" height=\"11\" rx=\"1\"/><path d=\"M2 19h20\"/>", "users": "<circle cx=\"9\" cy=\"8\" r=\"3.5\"/><path d=\"M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6\"/>", "doc": "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M8 13h8M8 17h5\"/>", "list": "<path d=\"M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01\"/>", "phone": "<path d=\"M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z\"/>", "server": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"18\" height=\"7\" rx=\"1\"/><path d=\"M7 6.5h.01M7 17.5h.01\"/>", "ticket": "<path d=\"M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z\"/><path d=\"M15 6v12\" stroke-dasharray=\"2 2\"/>", "spoof": "<circle cx=\"9\" cy=\"8\" r=\"4\"/><path d=\"M2 21a7 7 0 0 1 14 0M17 8l5 5M22 8l-5 5\"/>", "scissors": "<circle cx=\"6\" cy=\"6\" r=\"3\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><path d=\"M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12\"/>", "repeat": "<path d=\"m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3\"/>", "eye": "<path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "tag": "<path d=\"M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z\"/><path d=\"M7 7h.01\"/>", "box": "<path d=\"M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8\"/>", "router": "<rect x=\"2\" y=\"14\" width=\"20\" height=\"7\" rx=\"2\"/><path d=\"M6 17.5h.01M10 17.5h.01M12 14V9M8.5 7a5 5 0 0 1 7 0M6 4.5a8.5 8.5 0 0 1 12 0\"/>", "monitor": "<rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 21h8M12 17v4\"/>", "shield": "<path d=\"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z\"/>", "plus": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v8M8 12h8\"/>", "minus": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M8 12h8\"/>", "pen": "<path d=\"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z\"/>"};
+  function IC(n) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>'; }
+
+  /* ---------- Theme ---------- */
+  var root = document.documentElement, label = $('themeLabel');
+  function applyTheme(t) { root.setAttribute('data-theme', t); label.textContent = t === 'dark' ? 'Dark' : 'Light'; }
+  var saved = null;
+  try { saved = localStorage.getItem('se5101-notes-theme'); } catch (e) {}
+  if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  applyTheme(saved);
+  $('themeToggle').addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('se5101-notes-theme', next); } catch (e) {}
+  });
+
+  /* ---------- Progress, reveal, TOC ---------- */
+  var bar = $('progressBar');
+  function updateProgress() { var h = document.documentElement, max = h.scrollHeight - h.clientHeight; bar.style.width = (max > 0 ? h.scrollTop / max * 100 : 0) + '%'; }
+  document.addEventListener('scroll', updateProgress, { passive: true }); updateProgress();
+  var targets = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+    targets.forEach(function (el) { io.observe(el); });
+  } else { targets.forEach(function (el) { el.classList.add('in'); }); }
+  var sections = document.querySelectorAll('section.block'), links = document.querySelectorAll('.toc a');
+  function setActive() {
+    var pos = window.scrollY + 130, cur = null;
+    sections.forEach(function (s) { if (s.offsetTop <= pos) cur = s.id; });
+    links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + cur); });
+  }
+  document.addEventListener('scroll', setActive, { passive: true }); setActive();
+
+  function setVerdict(v, t, cls, icon, text) { v.className = 'verdict ' + cls; v.querySelector('.icon').textContent = icon; t.textContent = text; }
+
+  /* ---------- 1. Key swap ---------- */
+  var swapTimers = [];
+  function runSwap(withCA) {
+    swapTimers.forEach(clearTimeout); swapTimers = [];
+    $('swapNo').classList.toggle('on', !withCA); $('swapYes').classList.toggle('on', withCA);
+    var msgs = withCA ? [
+      ['bar ok', 2, 4, '\u2190 Bob sends his certificate (key + CA signature)'],
+      ['bar evil', 1, 3, '\u2190 Mallory swaps in her own key...'],
+      ['bar warnb', 1, 2, 'Alice checks the CA signature on it']
+    ] : [
+      ['bar', 2, 4, '\u2190 Bob sends his public key'],
+      ['bar evil', 1, 3, '\u2190 Mallory swaps in her own key'],
+      ['bar evil', 1, 3, 'Alice encrypts with Mallory\u2019s key \u2192']
+    ];
+    var log = $('swapLog'); log.innerHTML = '';
+    msgs.forEach(function (m, i) {
+      var row = document.createElement('div'); row.className = 'seq-msg cols3';
+      row.innerHTML = '<div class="' + m[0] + '" style="--from:' + m[1] + '; --to:' + m[2] + ';">' + m[3] + '</div>';
+      log.appendChild(row);
+      swapTimers.push(setTimeout(function () { row.classList.add('show'); }, reduceMotion ? 0 : 500 + i * 700));
+    });
+    setVerdict($('swapVerdict'), $('swapText'), 'idle', '\u25CB', 'Watch the messages\u2026');
+    swapTimers.push(setTimeout(function () {
+      if (withCA) setVerdict($('swapVerdict'), $('swapText'), 'ok', '\u2713', 'Caught! The signature does not match Mallory\u2019s key, and Mallory cannot forge the CA\u2019s signature. Alice rejects it.');
+      else setVerdict($('swapVerdict'), $('swapText'), 'fail', '\u2717', 'Mallory reads everything. Alice had no way to tell the key was fake.');
+    }, reduceMotion ? 0 : 2700));
+  }
+  $('swapNo').addEventListener('click', function () { runSwap(false); });
+  $('swapYes').addEventListener('click', function () { runSwap(true); });
+  runSwap(false);
+
+  /* ---------- 2. PKI workflow ---------- */
+  var pkiSteps = [
+    { pos: null, node: -1, tok: '', cap: 'Press <strong>Next</strong>. Alice runs a shop website and wants browsers to trust her public key.' },
+    { pos: 12.5, node: 0, tok: IC('key') + ' key pair', cap: '<strong>1. Generate keys.</strong> Alice creates a public/private key pair on her server. The private key never leaves her server.' },
+    { pos: 37.5, node: 1, tok: IC('pen') + ' CSR', cap: '<strong>2. Send a CSR.</strong> She sends a Certificate Signing Request: her public key + her name/domain. It goes to the RA first.' },
+    { pos: 37.5, node: 1, tok: IC('search') + ' checking\u2026', cap: '<strong>3. RA verifies identity.</strong> "Does Alice really own alice-shop.lk?" The RA checks, then tells the CA: "All good, issue it."' },
+    { pos: 62.5, node: 2, tok: IC('doc') + ' signed!', cap: '<strong>4. CA issues the certificate.</strong> The CA signs Alice\u2019s public key + name with the CA\u2019s private key.' },
+    { pos: 12.5, node: 0, tok: IC('doc') + ' installed', cap: '<strong>5. Install.</strong> Alice installs the certificate on her web server.' },
+    { pos: 87.5, node: 3, tok: IC('doc') + ' \u2713 verified', cap: '<strong>6. Use.</strong> Visitors\u2019 browsers receive the certificate, check the CA\u2019s signature using the CA\u2019s public key, and now trust Alice\u2019s key. the padlock appears in the address bar.' }
+  ];
+  var pkiStep = 0;
+  function renderPki() {
+    var s = pkiSteps[pkiStep], tok = $('pkiToken');
+    if (s.pos === null) tok.classList.remove('show'); else { tok.classList.add('show'); tok.style.left = s.pos + '%'; tok.innerHTML = s.tok; }
+    for (var i = 0; i < 4; i++) $('pkiN' + i).classList.toggle('active', i === s.node);
+    $('pkiCaption').innerHTML = s.cap;
+    $('pkiPrev').disabled = pkiStep === 0; $('pkiNext').disabled = pkiStep === pkiSteps.length - 1;
+  }
+  $('pkiNext').addEventListener('click', function () { if (pkiStep < pkiSteps.length - 1) { pkiStep++; renderPki(); } });
+  $('pkiPrev').addEventListener('click', function () { if (pkiStep > 0) { pkiStep--; renderPki(); } });
+  $('pkiReset').addEventListener('click', function () { pkiStep = 0; renderPki(); });
+  renderPki();
+
+  /* ---------- Certificate fields ---------- */
+  var certInfo = [
+    '<strong>Subject</strong> = the owner\u2019s identity (who this key belongs to). For a website, this is the domain name.',
+    '<strong>Public key</strong> = the key being vouched for. This is the whole point of the certificate.',
+    '<strong>Issuer</strong> = the CA that signed it. Your browser uses this to find the next link in the chain.',
+    '<strong>Validity period</strong> = start and end date. An expired certificate is rejected even if everything else is fine.',
+    '<strong>Serial number</strong> = a unique ID. Revocation lists (CRL) and OCSP use it to say "this one is cancelled".',
+    '<strong>CA\u2019s digital signature</strong> = the CA hashed all the fields and signed with its private key. Change even one letter and the signature check fails.'
+  ];
+  document.querySelectorAll('.cert-field').forEach(function (f) {
+    f.addEventListener('click', function () {
+      document.querySelectorAll('.cert-field').forEach(function (x) { x.classList.remove('sel'); });
+      f.classList.add('sel'); $('certCaption').innerHTML = certInfo[+f.getAttribute('data-i')];
+    });
+  });
+
+  /* ---------- Chain of trust ---------- */
+  var chainTimers = [];
+  function runChain(fake) {
+    chainTimers.forEach(clearTimeout); chainTimers = [];
+    $('ch0t').textContent = fake ? 'www.al1ce-shop.lk' : 'www.alice-shop.lk';
+    $('ch1t').textContent = fake ? '"Totally Real CA"' : 'Intermediate CA';
+    $('ch2t').textContent = 'Root CA';
+    for (var i = 0; i < 3; i++) { $('ch' + i).className = 'chain-node'; $('ch' + i + 's').textContent = '\u22EF'; }
+    setVerdict($('chainVerdict'), $('chainText'), 'idle', '\u25CB', 'Checking from the bottom up\u2026');
+    var d = reduceMotion ? 0 : 750;
+    function stage(i, ok, at) {
+      chainTimers.push(setTimeout(function () { $('ch' + i).className = 'chain-node checking'; $('ch' + i + 's').textContent = '\u2026'; }, at));
+      chainTimers.push(setTimeout(function () { $('ch' + i).className = 'chain-node ' + (ok ? 'ok' : 'bad'); $('ch' + i + 's').textContent = ok ? '\u2713' : '\u2717'; }, at + d * 0.6));
+    }
+    stage(0, true, d * 0.2);
+    if (!fake) {
+      stage(1, true, d * 1.3); stage(2, true, d * 2.4);
+      chainTimers.push(setTimeout(function () { setVerdict($('chainVerdict'), $('chainText'), 'ok', '\u2713', 'Every signature checks out and the chain ends at a root your browser already trusts. Connection is trusted.'); }, d * 3.2));
+    } else {
+      stage(1, false, d * 1.3);
+      chainTimers.push(setTimeout(function () { setVerdict($('chainVerdict'), $('chainText'), 'fail', '\u2717', 'The issuer "Totally Real CA" was not signed by any root in your browser. The chain is broken: the browser shows a security warning.'); }, d * 2.2));
+    }
+  }
+  $('chainReal').addEventListener('click', function () { runChain(false); });
+  $('chainFake').addEventListener('click', function () { runChain(true); });
+
+  /* ---------- Revocation ---------- */
+  var revTimers = [];
+  function playList(ul, items) {
+    revTimers.forEach(clearTimeout); revTimers = [];
+    $('crlOut').innerHTML = ''; $('ocspOut').innerHTML = '';
+    items.forEach(function (t, i) {
+      revTimers.push(setTimeout(function () { var li = document.createElement('li'); li.innerHTML = t; li.className = i === items.length - 1 ? 'lit' : ''; ul.appendChild(li); }, reduceMotion ? 0 : i * 650));
+    });
+  }
+  $('crlBtn').addEventListener('click', function () {
+    var s = $('revSel').value, bad = s === '2077';
+    playList($('crlOut'), ['Download the CA\u2019s CRL: [0981, 1500, 2077, 3310, \u2026]', 'Search the list for ' + s + '\u2026',
+      bad ? '<span style="color: var(--bad);">Found ' + s + ' \u2192 REVOKED \u2717</span>' : '<span style="color: var(--good);">' + s + ' not on the list \u2192 OK \u2713</span>']);
+  });
+  $('ocspBtn').addEventListener('click', function () {
+    var s = $('revSel').value, bad = s === '2077';
+    playList($('ocspOut'), ['Ask the OCSP server: "status of ' + s + '?"', 'Server replies (signed answer)\u2026',
+      bad ? '<span style="color: var(--bad);">"revoked" \u2717</span>' : '<span style="color: var(--good);">"good" \u2713</span>']);
+  });
+
+  /* ---------- 3. Kerberos ---------- */
+  var kbStep = 0, kbMax = 6;
+  var kbCaps = [
+    'Press <strong>Next</strong>. Alice sits at her company laptop and wants to open the File Server.',
+    '<strong>1. Client \u2192 AS.</strong> Alice says "I want to log in." Her password is <em>not</em> sent.',
+    '<strong>2. AS \u2192 Client.</strong> The AS sends a <strong>Ticket Granting Ticket (TGT)</strong>, locked with a key made from Alice\u2019s password. Only the real Alice can unlock it. This is her "wristband".',
+    '<strong>3. Client \u2192 TGS.</strong> Alice shows her TGT and asks for a ticket to the File Server. No password needed again: that\u2019s single sign-on.',
+    '<strong>4. TGS \u2192 Client.</strong> The TGS gives a <strong>service ticket</strong> plus a new <strong>session key</strong> that Alice and the File Server will share.',
+    '<strong>5. Client \u2192 Server.</strong> Alice presents the service ticket with a fresh timestamp. Old copies replayed later are rejected (that\u2019s why clocks must be in sync).',
+    '<strong>6. Server \u2192 Client.</strong> The server proves it can read the ticket too, so Alice knows it is the real server. <strong>Mutual authentication</strong> done. They talk using the session key.'
+  ];
+  var kbActive = [[], [0, 1], [0, 1], [0, 2], [0, 2], [0, 3], [0, 3]];
+  function renderKb() {
+    document.querySelectorAll('#kerberos .seq-msg').forEach(function (m) { m.classList.toggle('show', +m.getAttribute('data-step') <= kbStep); });
+    for (var i = 0; i < 4; i++) $('kbA' + i).classList.toggle('active', kbActive[kbStep].indexOf(i) >= 0);
+    $('kbCaption').innerHTML = kbCaps[kbStep]; $('kbNext').disabled = kbStep === kbMax;
+  }
+  $('kbNext').addEventListener('click', function () { if (kbStep < kbMax) { kbStep++; renderKb(); } });
+  $('kbReset').addEventListener('click', function () { kbStep = 0; renderKb(); });
+  renderKb();
+
+  /* ---------- 6. Packet builder ---------- */
+  var proto = 'esp', mode = 'transport';
+  // each segment: [class, label, small, weight, encrypted, auth ('a' full, 'p' partial, '' none)]
+  function layout() {
+    var T = mode === 'tunnel';
+    if (proto === 'none') return [['ip', 'IP header', 'real addresses', 2, 0, ''], ['data', 'TCP + Data', 'your message', 5, 0, '']];
+    if (proto === 'ah') {
+      var a = [];
+      if (T) a.push(['newip', 'New IP', 'gateway addr.', 2, 0, 'p']);
+      else a.push(['ip', 'IP header', 'real addresses', 2, 0, 'p']);
+      a.push(['sec', 'AH', 'SPI, seq, ICV', 2, 0, 'a']);
+      if (T) a.push(['ip', 'Orig. IP', 'real addresses', 2, 0, 'a']);
+      a.push(['data', 'TCP + Data', 'your message', 5, 0, 'a']);
+      return a;
+    }
+    var e = [];
+    if (T) e.push(['newip', 'New IP', 'gateway addr.', 2, 0, '']);
+    else e.push(['ip', 'IP header', 'real addresses', 2, 0, '']);
+    e.push(['sec', 'ESP hdr', 'SPI, seq', 2, 0, 'a']);
+    if (T) e.push(['ip', 'Orig. IP', 'real addresses', 2, 1, 'a']);
+    e.push(['data', 'TCP + Data', 'your message', 5, 1, 'a']);
+    e.push(['sec', 'ESP trailer', 'pad, next hdr', 2, 1, 'a']);
+    e.push(['sec', 'ESP ICV', 'auth data', 2, 0, '']);
+    return e;
+  }
+  var pktCaps = {
+    none_transport: 'A plain IP packet. Anyone on the path can read it and change it. (Mode does not apply without IPsec.)',
+    none_tunnel: 'A plain IP packet. Anyone on the path can read it and change it. (Mode does not apply without IPsec.)',
+    ah_transport: '<strong>AH, transport:</strong> the AH header sits between the IP header and the data. Everything is sealed against changes (even the IP header\u2019s fixed fields), but <strong>nothing is hidden</strong>.',
+    ah_tunnel: '<strong>AH, tunnel:</strong> a new outer IP header is added. The whole packet is sealed against changes, but still readable.',
+    esp_transport: '<strong>ESP, transport:</strong> data and trailer are <strong>encrypted</strong>; ESP header to trailer is authenticated. The original IP header is visible and not protected.',
+    esp_tunnel: '<strong>ESP, tunnel (a typical VPN):</strong> the <em>whole original packet</em>, including the real addresses, is encrypted inside. Outsiders see only the two gateways.'
+  };
+  var eveText = {
+    none: 'Eve sees: real sender & receiver IPs, and your full message. She can also edit it.',
+    ah: 'Eve sees: real IPs and your full message. But if she changes anything, the ICV check fails and the packet is dropped.',
+    esp_transport: 'Eve sees: the real sender & receiver IPs. Your message is scrambled.',
+    esp_tunnel: 'Eve sees: only "Gateway A \u2192 Gateway B". She doesn\u2019t even know which computers are talking.'
+  };
+  function renderPkt() {
+    var segs = layout(), row = $('pktRow'), er = $('encRow'), ar = $('authRow');
+    row.innerHTML = ''; er.innerHTML = ''; ar.innerHTML = '';
+    segs.forEach(function (s, i) {
+      var d = document.createElement('div');
+      d.className = 'seg ' + s[0] + (s[4] ? ' enc' : '') + ' pop';
+      d.style.flex = s[3] + ' 1 0'; d.style.animationDelay = (i * 0.06) + 's';
+      d.innerHTML = s[1] + '<small>' + s[2] + '</small>';
+      row.appendChild(d);
+      var e = document.createElement('div'); e.style.flex = s[3] + ' 1 0'; e.className = s[4] ? 'lane e' : 'lane'; er.appendChild(e);
+      var a = document.createElement('div'); a.style.flex = s[3] + ' 1 0'; a.className = 'lane' + (s[5] ? ' ' + s[5] : ''); ar.appendChild(a);
+    });
+    $('pktCaption').innerHTML = pktCaps[proto + '_' + mode];
+    $('eveBox').innerHTML = IC('eye') + ' ' + (proto === 'esp' ? eveText['esp_' + mode] : eveText[proto]);
+    document.querySelectorAll('[data-proto]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-proto') === proto); });
+    document.querySelectorAll('[data-mode]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-mode') === mode); });
+  }
+  document.querySelectorAll('[data-proto]').forEach(function (b) { b.addEventListener('click', function () { proto = b.getAttribute('data-proto'); renderPkt(); }); });
+  document.querySelectorAll('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { mode = b.getAttribute('data-mode'); renderPkt(); }); });
+  renderPkt();
+
+  /* ---------- Anti-replay ---------- */
+  var rpNext = 1, rpSeen = {};
+  var rpLabels = ['', 'hello', 'pay Rs 1000', 'see you', 'bye', 'ok', 'thanks', 'done'];
+  function addPk(n, rej) {
+    var p = document.createElement('span'); p.className = 'pk' + (rej ? ' rej' : '');
+    p.textContent = '#' + n + ' "' + (rpLabels[n] || 'msg') + '"' + (rej ? ' (replay)' : '');
+    $('rpLane').appendChild(p);
+  }
+  $('rpSend').addEventListener('click', function () {
+    var n = rpNext++; rpSeen[n] = true; addPk(n, false);
+    $('rpCaption').innerHTML = 'Bob accepts <strong>#' + n + '</strong>: new sequence number, valid ICV.';
+  });
+  $('rpReplay').addEventListener('click', function () {
+    var sent = Object.keys(rpSeen);
+    if (!sent.length) { $('rpCaption').innerHTML = 'Nothing to replay yet. Let Alice send some packets first.'; return; }
+    var n = sent.indexOf('2') >= 0 ? 2 : +sent[0];
+    addPk(n, true);
+    $('rpCaption').innerHTML = 'Eve resends a copy of <strong>#' + n + '</strong>. The packet is perfectly valid, but Bob has already seen sequence number ' + n + ' \u2192 <strong style="color: var(--bad);">dropped</strong>. No double payment!';
+  });
+  $('rpReset').addEventListener('click', function () { rpNext = 1; rpSeen = {}; $('rpLane').innerHTML = ''; $('rpCaption').textContent = 'Send a few packets first, then let Eve replay one.'; });
+
+  /* ---------- NAT ---------- */
+  var natTimers = [];
+  function runNat(isAH) {
+    natTimers.forEach(clearTimeout); natTimers = [];
+    $('natAH').classList.toggle('on', isAH); $('natESP').classList.toggle('on', !isAH);
+    var p = $('natPkt'), d = reduceMotion ? 0 : 1100;
+    p.style.transition = 'none'; p.style.left = '46px'; void p.offsetWidth; p.style.transition = '';
+    p.style.background = 'var(--surface)';
+    p.textContent = (isAH ? 'AH' : 'ESP') + ' \u00B7 src 10.0.0.5';
+    setVerdict($('natVerdict'), $('natText'), 'idle', '\u25CB', 'Packet travelling to the NAT router\u2026');
+    natTimers.push(setTimeout(function () { p.style.left = '50%'; }, 50));
+    natTimers.push(setTimeout(function () {
+      p.textContent = (isAH ? 'AH' : 'ESP') + ' \u00B7 src 203.0.113.7';
+      p.style.background = 'var(--warn-soft)';
+      setVerdict($('natVerdict'), $('natText'), 'idle', '\u21BB', 'NAT rewrites the source IP: 10.0.0.5 \u2192 203.0.113.7');
+    }, 60 + d));
+    natTimers.push(setTimeout(function () { p.style.left = 'calc(100% - 46px)'; }, 60 + d * 2));
+    natTimers.push(setTimeout(function () {
+      if (isAH) { p.style.background = 'var(--bad-soft)'; setVerdict($('natVerdict'), $('natText'), 'fail', '\u2717', 'AH: the source IP was part of the integrity check. It changed, so the ICV does not match \u2192 packet rejected.'); }
+      else { p.style.background = 'var(--good-soft)'; setVerdict($('natVerdict'), $('natText'), 'ok', '\u2713', 'ESP: the outer IP header is not covered by the check, so the changed address doesn\u2019t matter \u2192 packet accepted.'); }
+    }, 60 + d * 3));
+  }
+  $('natAH').addEventListener('click', function () { runNat(true); });
+  $('natESP').addEventListener('click', function () { runNat(false); });
+
+  /* ---------- Journey highlight ---------- */
+  var jSteps = document.querySelectorAll('#journey .flow-step'), jI = 0;
+  if (!reduceMotion) setInterval(function () {
+    jSteps.forEach(function (s, i) { s.style.borderColor = i === jI ? 'var(--accent)' : ''; s.style.background = i === jI ? 'var(--accent-soft)' : ''; });
+    jI = (jI + 1) % jSteps.length;
+  }, 1300);
+
+  /* ---------- 7. IKE ---------- */
+  var ikeSteps = [
+    { msg: '', keys: 0, pipe: 0, sas: 0, data: 0, cap: 'Press <strong>Next</strong>. Office A and Office B want a VPN over the public Internet. Nothing is set up yet.' },
+    { msg: 'Phase 1: "I support AES, SHA-256, DH group 14"', keys: 0, pipe: 0, sas: 0, data: 0, cap: '<strong>Phase 1, step 1 \u2014 Agree on algorithms.</strong> Office A proposes a list of ciphers and hashes; Office B picks ones it also supports.' },
+    { msg: 'Phase 1: Diffie-Hellman exchange (g\u1D43, g\u1D47)', keys: 1, pipe: 0, sas: 0, data: 0, cap: '<strong>Phase 1, step 2 \u2014 Key exchange.</strong> They run Diffie-Hellman. Both now hold the same shared secret key, although it never travelled on the wire.' },
+    { msg: 'Phase 1: prove identity (PSK / certificate)', keys: 1, pipe: 1, sas: 0, data: 0, cap: '<strong>Phase 1, step 3 \u2014 Authenticate.</strong> Each side proves who it is with a pre-shared key or a certificate. This stops a man-in-the-middle. Result: the <strong>IKE SA</strong>, a secure control channel.' },
+    { msg: 'Phase 2: create IPsec SAs (ESP, AES, 1 hour)', keys: 1, pipe: 1, sas: 1, data: 0, cap: '<strong>Phase 2 \u2014 Build the tunnel.</strong> Inside the secure channel they agree the IPsec settings: protocol (ESP), cipher, keys, key lifetime. Two one-way <strong>IPsec SAs</strong> are created.' },
+    { msg: 'Data flows, protected by ESP', keys: 1, pipe: 1, sas: 1, data: 1, cap: '<strong>Ready.</strong> Real traffic now flows, protected by ESP using the keys IKE created. IKE\u2019s job was setup; ESP does the actual work.' },
+    { msg: 'Lifetime up \u2192 rekey with fresh keys', keys: 1, pipe: 1, sas: 1, data: 1, cap: '<strong>Rekeying.</strong> When a key\u2019s lifetime ends, IKE quietly negotiates fresh keys through the IKE SA, so a long session never relies on one key for too long.' }
+  ];
+  var ikeStep = 0;
+  function op(id, on) { $(id).setAttribute('opacity', on ? 1 : 0); }
+  function renderIke() {
+    var s = ikeSteps[ikeStep];
+    op('ikeMsg', !!s.msg); $('ikeMsgT').textContent = s.msg;
+    op('ikeKeys', s.keys); op('ikePipe', s.pipe); op('ikePipeL', s.pipe); op('ikeSAs', s.sas); op('ikeData', s.data);
+    $('ikeCaption').innerHTML = s.cap;
+    $('ikePrev').disabled = ikeStep === 0; $('ikeNext').disabled = ikeStep === ikeSteps.length - 1;
+  }
+  $('ikeNext').addEventListener('click', function () { if (ikeStep < ikeSteps.length - 1) { ikeStep++; renderIke(); } });
+  $('ikePrev').addEventListener('click', function () { if (ikeStep > 0) { ikeStep--; renderIke(); } });
+  $('ikeReset').addEventListener('click', function () { ikeStep = 0; renderIke(); });
+  renderIke();
+
+  /* ---------- Flashcards ---------- */
+  var cards = [
+    ['What does a CA do?', 'Issues and signs certificates that bind a name to a public key; maintains the CRL.'],
+    ['RA vs CA?', 'RA checks your identity. CA signs and issues the certificate.'],
+    ['CRL vs OCSP?', 'CRL: download the whole list of revoked certs. OCSP: ask the server about one cert.'],
+    ['What is a TGT?', 'Kerberos "wristband" from the AS. Used to get service tickets from the TGS without re-entering your password.'],
+    ['Why does Kerberos need synced clocks?', 'Tickets and authenticators use timestamps to block replay attacks.'],
+    ['AH protocol number? ESP?', 'AH = 51, ESP = 50.'],
+    ['Which gives confidentiality, AH or ESP?', 'Only ESP. AH never encrypts.'],
+    ['Transport vs tunnel mode?', 'Transport protects the payload (host-to-host). Tunnel wraps the whole packet in a new IP header (VPNs).'],
+    ['Why is an SA one-way?', 'Each direction gets its own SA with its own SPI and keys, so two-way traffic needs two SAs.'],
+    ['IKE Phase 1 vs Phase 2?', 'Phase 1: agree algorithms, DH, authenticate \u2192 IKE SA. Phase 2: create IPsec SAs for the data.']
+  ];
+  var fg = $('flashGrid');
+  cards.forEach(function (c) {
+    var f = document.createElement('div'); f.className = 'flash';
+    f.innerHTML = '<div class="flash-inner"><div class="flash-face front">' + c[0] + '</div><div class="flash-face back">' + c[1] + '</div></div>';
+    f.addEventListener('click', function () { f.classList.toggle('flipped'); });
+    fg.appendChild(f);
+  });
+})();
+</script>
+</body>
+</html>
