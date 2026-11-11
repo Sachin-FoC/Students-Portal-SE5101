@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SE5101 - Lab Sheet 07: Python for Cryptography and Hashing</title>
+<style>
+    :root {
+        --navy: #1b2a4a;
+        --blue: #2c5aa0;
+        --light-blue: #eaf1fb;
+        --accent: #d9534f;
+        --gray: #555;
+        --border: #d7e0ec;
+        --green: #2e8b57;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #222;
+        line-height: 1.6;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px 25px 80px;
+        background: #fbfcfe;
+    }
+    header {
+        border-bottom: 4px solid var(--blue);
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+    header h1 {
+        color: var(--navy);
+        margin: 0 0 5px;
+        font-size: 1.7em;
+    }
+    header .module {
+        color: var(--blue);
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+    header .meta {
+        color: var(--gray);
+        font-size: 0.95em;
+        margin-top: 8px;
+    }
+    h2 {
+        color: var(--navy);
+        border-left: 5px solid var(--blue);
+        padding: 6px 12px;
+        background: var(--light-blue);
+        margin-top: 40px;
+        font-size: 1.25em;
+    }
+    h3 {
+        color: var(--blue);
+        margin-top: 25px;
+        font-size: 1.05em;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 4px;
+    }
+    .box {
+        background: var(--light-blue);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 15px 20px;
+        margin: 15px 0;
+    }
+    .warning {
+        background: #fff4e5;
+        border-left: 5px solid #e0a015;
+        padding: 12px 18px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .tip {
+        background: #eafaf1;
+        border-left: 5px solid var(--green);
+        padding: 12px 18px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .task {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-left: 5px solid var(--blue);
+        border-radius: 4px;
+        padding: 15px 20px;
+        margin: 18px 0;
+    }
+    .task-title {
+        font-weight: 700;
+        color: var(--navy);
+        margin-bottom: 8px;
+        font-size: 1.05em;
+    }
+    code, pre {
+        font-family: 'Consolas', 'Courier New', monospace;
+        background: #1e1e2e;
+        color: #d4d4f4;
+        border-radius: 4px;
+    }
+    code {
+        padding: 2px 6px;
+        font-size: 0.92em;
+    }
+    pre {
+        padding: 12px 16px;
+        overflow-x: auto;
+        margin: 10px 0;
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.95em;
+    }
+    th, td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+        vertical-align: top;
+    }
+    th {
+        background: var(--blue);
+        color: white;
+    }
+    tr:nth-child(even) { background: var(--light-blue); }
+    .fill-box {
+        display: inline-block;
+        min-width: 180px;
+        border-bottom: 1px dashed var(--gray);
+        margin: 4px 6px;
+    }
+    .answer-area {
+        border: 1px dashed #aaa;
+        background: #fff;
+        min-height: 60px;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 8px 0;
+        color: #999;
+        font-style: italic;
+    }
+    .checklist li { margin-bottom: 6px; }
+    footer {
+        margin-top: 50px;
+        border-top: 2px solid var(--border);
+        padding-top: 15px;
+        color: var(--gray);
+        font-size: 0.85em;
+        text-align: center;
+    }
+    .step-num {
+        display: inline-block;
+        background: var(--navy);
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 22px;
+        font-size: 0.8em;
+        margin-right: 8px;
+    }
+    .filter-table code { color: var(--navy); background: #f0f4fa; padding: 2px 6px; border-radius: 3px; }
+    @media print {
+        body { max-width: 100%; }
+        h2 { break-before: page; }
+        header + h2 { break-before: avoid; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="module">SE5101 - Computer and Network Security</div>
+    <h1>Lab Sheet 07: Python for Cryptography and Hashing</h1>
+    <div class="meta">
+        Duration: 2 hours &nbsp;|&nbsp; Environment: Kali Linux VM (or any Linux/Windows with Python 3) &nbsp;|&nbsp;
+        Mode: Individual
+    </div>
+</header>
+
+<h2>1. Learning Outcomes</h2>
+<div class="box">
+    By the end of this lab, students will be able to:
+    <ul>
+        <li>Distinguish clearly between <strong>encoding</strong>, <strong>hashing</strong> and <strong>encryption</strong>.</li>
+        <li>Implement and break a classical <strong>Caesar cipher</strong> to understand why small key spaces are insecure.</li>
+        <li>Compute <strong>cryptographic hashes</strong> (MD5, SHA-1, SHA-256, SHA-512) with <code>hashlib</code> and verify file integrity.</li>
+        <li>Explain why plain hashes are weak for passwords, and store passwords safely using a <strong>salt</strong> and <strong>PBKDF2</strong>.</li>
+        <li>Use <strong>HMAC</strong> to detect message tampering.</li>
+        <li>Perform <strong>symmetric encryption</strong> (Fernet, AES-GCM) and <strong>asymmetric encryption and digital signatures</strong> (RSA) with the <code>cryptography</code> library.</li>
+        <li>Upgrade the Lab 06 TCP client/server to send <strong>encrypted</strong> traffic, and confirm it in Wireshark.</li>
+    </ul>
+</div>
+
+<h2>2. Pre-Lab Setup</h2>
+<div class="box">
+    <ul class="checklist">
+        <li>☐ Confirm Python 3 is installed:
+            <pre>python3 --version</pre>
+        </li>
+        <li>☐ Check that the <code>cryptography</code> library is available (it is usually pre-installed on Kali):
+            <pre>python3 -c "import cryptography; print(cryptography.__version__)"</pre>
+            If you get <code>ModuleNotFoundError</code>, install it with <strong>one</strong> of:
+            <pre>sudo apt update &amp;&amp; sudo apt install python3-cryptography -y
+# or
+pip3 install cryptography --break-system-packages</pre>
+        </li>
+        <li>☐ Create a working folder for this lab:
+            <pre>mkdir -p ~/lab07_crypto &amp;&amp; cd ~/lab07_crypto</pre>
+        </li>
+        <li>☐ Keep your Lab 06 files handy - Task 12 builds on <code>server.py</code> / <code>chat_client.py</code>.</li>
+    </ul>
+</div>
+
+<div class="tip">
+    <strong>Two libraries in this lab:</strong> <code>hashlib</code>, <code>hmac</code>, <code>secrets</code> and <code>base64</code> are part of Python's <em>standard library</em> (nothing to install). <code>cryptography</code> is a third-party library used for real encryption (Fernet, AES, RSA).
+</div>
+
+<div class="warning">
+    <strong>⚠ Ethics Notice:</strong> The password-cracking exercise in Task 6 is run <em>only</em> against hashes you generate yourself in this lab. Never attempt to crack hashes, credentials or encrypted data that do not belong to you or that you are not explicitly authorised to test. The same rules from Labs 05 and 06 apply here.
+</div>
+
+<div class="warning">
+    <strong>⚠ Golden rule of cryptography:</strong> Never invent your own encryption algorithm for real systems. Use well-reviewed libraries (like <code>cryptography</code>) and standard algorithms. The Caesar cipher in Task 1 is for learning only.
+</div>
+
+<h2>3. Background: Encoding vs Hashing vs Encryption</h2>
+<div class="box">
+    <p>In Lab 06 (Task 8) you saw that data sent over a plain TCP socket can be read by anyone capturing the traffic. Cryptography gives us tools to protect the three core security goals: <strong>Confidentiality</strong>, <strong>Integrity</strong> and <strong>Authenticity</strong>.</p>
+    <table>
+        <tr><th>Technique</th><th>Reversible?</th><th>Needs a key?</th><th>Purpose</th><th>Python example</th></tr>
+        <tr><td><strong>Encoding</strong></td><td>Yes, by anyone</td><td>No</td><td>Represent data in another format (NOT security)</td><td><code>base64</code></td></tr>
+        <tr><td><strong>Hashing</strong></td><td>No (one-way)</td><td>No</td><td>Integrity, fingerprints, password storage</td><td><code>hashlib.sha256</code></td></tr>
+        <tr><td><strong>HMAC</strong></td><td>No</td><td>Yes (shared secret)</td><td>Integrity + authenticity of a message</td><td><code>hmac.new</code></td></tr>
+        <tr><td><strong>Symmetric encryption</strong></td><td>Yes, with the key</td><td>Yes (same key both sides)</td><td>Confidentiality</td><td><code>Fernet</code>, <code>AESGCM</code></td></tr>
+        <tr><td><strong>Asymmetric encryption</strong></td><td>Yes, with private key</td><td>Yes (public/private pair)</td><td>Confidentiality, key exchange, digital signatures</td><td>RSA</td></tr>
+    </table>
+    <p>A good cryptographic <strong>hash function</strong> has these properties:</p>
+    <ul>
+        <li><strong>Deterministic</strong> - the same input always gives the same output.</li>
+        <li><strong>Fixed length</strong> - SHA-256 always outputs 256 bits, whether the input is 1 byte or 1 GB.</li>
+        <li><strong>Pre-image resistant</strong> - given a hash, you cannot work back to the input.</li>
+        <li><strong>Collision resistant</strong> - it is infeasible to find two inputs with the same hash.</li>
+        <li><strong>Avalanche effect</strong> - a tiny change in input completely changes the output.</li>
+    </ul>
+</div>
+
+<h2>4. Part A - Classical Cipher and Encoding</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">1</span>Caesar Cipher - Encrypt, Decrypt and Brute-Force</div>
+    <p>The Caesar cipher shifts each letter by a fixed number (the <em>key</em>). Create <code>caesar.py</code>:</p>
+    <pre>def caesar_encrypt(text, shift):
+    result = ""
+    for ch in text:
+        if ch.isalpha():
+            base = ord("A") if ch.isupper() else ord("a")
+            result += chr((ord(ch) - base + shift) % 26 + base)
+        else:
+            result += ch          # keep spaces/punctuation
+    return result
+
+def caesar_decrypt(text, shift):
+    return caesar_encrypt(text, -shift)
+
+secret = caesar_encrypt("Attack at Dawn", 3)
+print("Encrypted:", secret)
+print("Decrypted:", caesar_decrypt(secret, 3))
+
+# Brute force: try every possible key
+print("\n--- Brute force ---")
+for key in range(26):
+    print(f"Key {key:2}: {caesar_decrypt(secret, key)}")</pre>
+    <p>Run it: <code>python3 caesar.py</code></p>
+    <div class="box">
+        What is the ciphertext of <code>"Attack at Dawn"</code> with shift 3? <span class="fill-box">&nbsp;</span><br>
+        How many possible keys does the Caesar cipher have? <span class="fill-box">&nbsp;</span><br>
+        Why was the brute-force attack so easy? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> <code>ord()</code> turns a character into its number (e.g. <code>ord("A") = 65</code>) and <code>chr()</code> does the reverse. <code>% 26</code> wraps around so that shifting <code>Z</code> by 1 gives <code>A</code>. Modern ciphers like AES-256 have 2<sup>256</sup> possible keys - brute force is impossible.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">2</span>Encoding Is Not Encryption (Base64)</div>
+    <p>Create <code>encoding.py</code>:</p>
+    <pre>import base64
+
+text = "password123"
+encoded = base64.b64encode(text.encode())
+print("Base64:", encoded.decode())
+
+decoded = base64.b64decode(encoded)
+print("Decoded:", decoded.decode())</pre>
+    <p>Now decode this string <em>without</em> a key: <code>U0U1MTAxIHJvY2tz</code> (edit the script or use <code>echo U0U1MTAxIHJvY2tz | base64 -d</code> in the terminal).</p>
+    <div class="box">
+        What does <code>U0U1MTAxIHJvY2tz</code> decode to? <span class="fill-box">&nbsp;</span><br>
+        Why is Base64 <em>not</em> a way to protect a password? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="warning">
+        <strong>Note:</strong> Base64 is common in HTTP Basic Auth headers, emails and JSON. If you saw <code>Authorization: Basic ...</code> in Wireshark (Lab 04), that value is only <em>encoded</em> - anyone can decode it.
+    </div>
+</div>
+
+<h2>5. Part B - Hashing with <code>hashlib</code></h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">3</span>Compute Hashes with Different Algorithms</div>
+    <p>Create <code>hashing.py</code>:</p>
+    <pre>import hashlib
+
+message = "hello"
+data = message.encode()       # hash functions work on bytes
+
+for algo in ["md5", "sha1", "sha256", "sha512"]:
+    h = hashlib.new(algo, data)
+    digest = h.hexdigest()
+    print(f"{algo:7} ({len(digest)*4} bits): {digest}")</pre>
+    <p>Run it twice. Then change <code>message</code> to a long sentence and run again.</p>
+    <div class="box">
+        Did the hash of <code>"hello"</code> change between the two runs? <span class="fill-box">&nbsp;</span><br>
+        Did the hash <em>length</em> change when you used a longer message? <span class="fill-box">&nbsp;</span><br>
+        Fill in the table:
+        <table>
+            <tr><th>Algorithm</th><th>Output size (bits)</th><th>Hex characters</th><th>Still safe to use?</th></tr>
+            <tr><td>MD5</td><td></td><td></td><td></td></tr>
+            <tr><td>SHA-1</td><td></td><td></td><td></td></tr>
+            <tr><td>SHA-256</td><td></td><td></td><td></td></tr>
+            <tr><td>SHA-512</td><td></td><td></td><td></td></tr>
+        </table>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> MD5 and SHA-1 are <strong>broken</strong> - practical collisions have been found for both. Use SHA-256 or stronger for anything security-related. You can cross-check your results in the terminal: <code>echo -n hello | sha256sum</code> (<code>-n</code> stops echo adding a newline).
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">4</span>The Avalanche Effect</div>
+    <p>Create <code>avalanche.py</code>:</p>
+    <pre>import hashlib
+
+def sha256_hex(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+def bits_different(hex1, hex2):
+    """Count how many bits differ between two hex digests."""
+    x = int(hex1, 16) ^ int(hex2, 16)
+    return bin(x).count("1")
+
+a = sha256_hex("hello")
+b = sha256_hex("hellp")   # one letter changed
+print("hello -&gt;", a)
+print("hellp -&gt;", b)
+print("Bits changed:", bits_different(a, b), "out of 256")</pre>
+    <div class="box">
+        How many bits changed? <span class="fill-box">&nbsp;</span><br>
+        Roughly what percentage of the output is that? <span class="fill-box">&nbsp;</span><br>
+        Why is this property useful for detecting tampering? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">5</span>File Integrity Checker</div>
+    <p>Software downloads often publish a SHA-256 checksum so you can confirm the file was not modified. Create <code>file_hash.py</code>:</p>
+    <pre>import hashlib
+import sys
+
+def sha256_file(path):
+    """Hash a file in 4 KB chunks so large files don't fill memory."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+path = sys.argv[1]
+print(sha256_file(path), path)</pre>
+    <ol>
+        <li>Create a test file: <code>echo "lab data" &gt; sample.txt</code></li>
+        <li>Hash it: <code>python3 file_hash.py sample.txt</code></li>
+        <li>Compare with Linux's built-in tool: <code>sha256sum sample.txt</code></li>
+        <li>Edit <em>one character</em> in <code>sample.txt</code> with <code>nano</code> and hash it again.</li>
+    </ol>
+    <div class="box">
+        Did your Python output match <code>sha256sum</code>? <span class="fill-box">&nbsp;</span><br>
+        What happened to the hash after editing one character? <span class="fill-box">&nbsp;</span><br>
+        <strong>Challenge:</strong> Extend the script to take a second argument (an expected hash) and print <code>OK</code> or <code>MODIFIED</code>.
+        <div class="answer-area">Paste your extended code here...</div>
+    </div>
+</div>
+
+<h2>6. Part C - Password Storage</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">6</span>Why Plain Hashes Are Weak: A Dictionary Attack</div>
+    <p>Many breached databases stored passwords as unsalted hashes. Because hashing is deterministic, an attacker can hash a list of common passwords and look for a match. Create <code>crack.py</code>:</p>
+    <pre>import hashlib
+
+# A "leaked" unsalted SHA-256 password hash (from your own test data)
+leaked_hash = hashlib.sha256(b"sunshine").hexdigest()
+
+wordlist = ["123456", "password", "qwerty", "letmein",
+            "dragon", "sunshine", "monkey", "football"]
+
+for guess in wordlist:
+    if hashlib.sha256(guess.encode()).hexdigest() == leaked_hash:
+        print("[+] Password found:", guess)
+        break
+else:
+    print("[-] Not in wordlist")</pre>
+    <div class="box">
+        Did the script recover the password? <span class="fill-box">&nbsp;</span><br>
+        If two users both chose <code>sunshine</code>, would their stored hashes be the same? <span class="fill-box">&nbsp;</span><br>
+        Why does that make the attacker's job easier (think "rainbow tables")? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> The <code>for ... else</code> construct runs the <code>else</code> block only if the loop finishes <em>without</em> hitting <code>break</code>. Real tools such as Hashcat and John the Ripper do the same thing, but test billions of guesses per second on GPUs.
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">7</span>Salted, Slow Password Hashing with PBKDF2</div>
+    <p>The fix is to add a random <strong>salt</strong> (unique per user) and use a deliberately <strong>slow</strong> key-derivation function. Create <code>password_hash.py</code>:</p>
+    <pre>import hashlib
+import hmac
+import secrets
+
+ITERATIONS = 600_000
+
+def hash_password(password):
+    """Return (salt, hash) using PBKDF2-HMAC-SHA256."""
+    salt = secrets.token_bytes(16)
+    pw_hash = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, ITERATIONS)
+    return salt, pw_hash
+
+def verify_password(password, salt, stored_hash):
+    new_hash = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, ITERATIONS)
+    return hmac.compare_digest(new_hash, stored_hash)
+
+salt1, h1 = hash_password("sunshine")
+salt2, h2 = hash_password("sunshine")   # same password again
+
+print("Salt 1:", salt1.hex(), " Hash 1:", h1.hex()[:32], "...")
+print("Salt 2:", salt2.hex(), " Hash 2:", h2.hex()[:32], "...")
+print("Same hash for same password?", h1 == h2)
+
+print("Correct password: ", verify_password("sunshine", salt1, h1))
+print("Wrong password:   ", verify_password("Sunshine", salt1, h1))</pre>
+    <div class="box">
+        Did the same password produce the same hash twice? Why / why not? <span class="fill-box">&nbsp;</span><br>
+        Time the script with <code>time python3 password_hash.py</code>. How long did it take? <span class="fill-box">&nbsp;</span><br>
+        Why is a <em>slow</em> hash a good thing for passwords but a bad thing for file checksums? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>What to store in a database:</strong> the salt and the hash (and the iteration count). The salt is <em>not</em> secret. <code>secrets</code> gives cryptographically secure random bytes - never use the <code>random</code> module for security. <code>hmac.compare_digest()</code> compares in constant time to prevent timing attacks. In production you may also see <strong>bcrypt</strong>, <strong>scrypt</strong> or <strong>Argon2</strong>.
+    </div>
+</div>
+
+<h2>7. Part D - Message Integrity with HMAC</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">8</span>Detect Tampering with HMAC</div>
+    <p>A plain hash cannot stop an attacker who changes a message <em>and</em> recomputes its hash. An <strong>HMAC</strong> mixes in a secret key, so only someone with the key can produce a valid tag. Create <code>hmac_demo.py</code>:</p>
+    <pre>import hmac
+import hashlib
+
+key = b"shared-secret-key"
+message = b"Transfer 100 to Alice"
+
+tag = hmac.new(key, message, hashlib.sha256).hexdigest()
+print("Message:", message.decode())
+print("HMAC tag:", tag)
+
+# Receiver recomputes the tag and compares
+tampered = b"Transfer 900 to Alice"
+for received in [message, tampered]:
+    check = hmac.new(key, received, hashlib.sha256).hexdigest()
+    ok = hmac.compare_digest(check, tag)
+    print(received.decode(), "-&gt; valid?", ok)</pre>
+    <div class="box">
+        Which message passed verification and which failed? <span class="fill-box">&nbsp;</span><br>
+        Change the <code>key</code> on the receiver side only. What happens? <span class="fill-box">&nbsp;</span><br>
+        Does HMAC provide confidentiality (hide the message)? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<h2>8. Part E - Symmetric Encryption</h2>
+
+<div class="box">
+    <p>In <strong>symmetric</strong> encryption, the <em>same key</em> encrypts and decrypts. It is fast and used for bulk data (disk encryption, HTTPS after the handshake, VPNs). The hard part is sharing the key safely.</p>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">9</span>Easy, Safe Encryption with Fernet</div>
+    <p><strong>Fernet</strong> is a high-level recipe from the <code>cryptography</code> library. It uses AES-128 in CBC mode plus an HMAC-SHA256, so it gives both confidentiality and integrity with no settings to get wrong. Create <code>fernet_demo.py</code>:</p>
+    <pre>from cryptography.fernet import Fernet, InvalidToken
+
+key = Fernet.generate_key()
+print("Key:", key.decode())
+
+f = Fernet(key)
+token = f.encrypt(b"Meet at the lab at 10")
+print("Ciphertext:", token.decode())
+
+plain = f.decrypt(token)
+print("Decrypted:", plain.decode())
+
+# Try decrypting with the WRONG key
+wrong = Fernet(Fernet.generate_key())
+try:
+    wrong.decrypt(token)
+except InvalidToken:
+    print("[!] Wrong key - decryption failed")</pre>
+    <div class="box">
+        Run it twice. Is the ciphertext the same each time, even for the same message? <span class="fill-box">&nbsp;</span><br>
+        Why is that a desirable property? <span class="fill-box">&nbsp;</span><br>
+        What happened when you used the wrong key? <span class="fill-box">&nbsp;</span>
+    </div>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">10</span>AES-256-GCM (Authenticated Encryption)</div>
+    <p>AES-GCM is the mode used in TLS 1.3 and most modern protocols. It needs a <strong>nonce</strong> ("number used once") for every message. Create <code>aes_gcm.py</code>:</p>
+    <pre>import os
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+key = AESGCM.generate_key(bit_length=256)   # 32-byte key
+aes = AESGCM(key)
+
+nonce = os.urandom(12)            # must be unique for every message
+plaintext = b"Top secret lab data"
+ciphertext = aes.encrypt(nonce, plaintext, None)
+
+print("Key       :", key.hex())
+print("Nonce     :", nonce.hex())
+print("Ciphertext:", ciphertext.hex())
+print("Decrypted :", aes.decrypt(nonce, ciphertext, None).decode())
+
+# Flip one byte of the ciphertext and try again
+tampered = bytearray(ciphertext)
+tampered[0] ^= 1
+try:
+    aes.decrypt(nonce, bytes(tampered), None)
+except Exception as e:
+    print("[!] Tampering detected:", type(e).__name__)</pre>
+    <div class="box">
+        The plaintext is 19 bytes. How many bytes is the ciphertext? <span class="fill-box">&nbsp;</span><br>
+        What are the extra 16 bytes for? <span class="fill-box">&nbsp;</span><br>
+        What exception was raised when one byte was flipped? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="warning">
+        <strong>Note:</strong> The nonce is not secret and is sent alongside the ciphertext, but you must <strong>never reuse a nonce with the same key</strong>. Reuse can leak the plaintext and let attackers forge messages. The <code>hazmat</code> ("hazardous materials") part of the library is named that way for a reason - prefer Fernet unless you need a specific algorithm.
+    </div>
+</div>
+
+<h2>9. Part F - Asymmetric Encryption and Digital Signatures</h2>
+
+<div class="box">
+    <p>In <strong>asymmetric</strong> (public-key) cryptography each person has a key <em>pair</em>:</p>
+    <ul>
+        <li>The <strong>public key</strong> can be shared with everyone.</li>
+        <li>The <strong>private key</strong> is kept secret.</li>
+    </ul>
+    <table>
+        <tr><th>Goal</th><th>Sender uses</th><th>Receiver uses</th></tr>
+        <tr><td>Confidentiality (encrypt a message to Bob)</td><td>Bob's <strong>public</strong> key</td><td>Bob's <strong>private</strong> key</td></tr>
+        <tr><td>Digital signature (prove Alice wrote it)</td><td>Alice's <strong>private</strong> key</td><td>Alice's <strong>public</strong> key</td></tr>
+    </table>
+</div>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">11</span>RSA: Key Pair, Encryption and Signatures</div>
+    <p>Create <code>rsa_demo.py</code>:</p>
+    <pre>from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.exceptions import InvalidSignature
+
+# 1. Generate a key pair
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+pem = public_key.public_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PublicFormat.SubjectPublicKeyInfo)
+print(pem.decode())
+
+oaep = padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(), label=None)
+
+# 2. Encrypt with the PUBLIC key, decrypt with the PRIVATE key
+ciphertext = public_key.encrypt(b"Hello Bob", oaep)
+print("Ciphertext length:", len(ciphertext), "bytes")
+print("Decrypted:", private_key.decrypt(ciphertext, oaep).decode())
+
+# 3. Sign with the PRIVATE key, verify with the PUBLIC key
+pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
+                  salt_length=padding.PSS.MAX_LENGTH)
+document = b"I, Alice, approve this report."
+signature = private_key.sign(document, pss, hashes.SHA256())
+
+for doc in [document, b"I, Alice, reject this report."]:
+    try:
+        public_key.verify(signature, doc, pss, hashes.SHA256())
+        print("VALID signature   :", doc.decode())
+    except InvalidSignature:
+        print("INVALID signature :", doc.decode())</pre>
+    <div class="box">
+        What does the start and end of the PEM public key look like? <span class="fill-box">&nbsp;</span><br>
+        How long is the RSA ciphertext, even though the message was only 9 bytes? Why? <span class="fill-box">&nbsp;</span><br>
+        Which document had a valid signature, and why did the other one fail? <span class="fill-box">&nbsp;</span>
+    </div>
+    <div class="tip">
+        <strong>Tip:</strong> RSA is slow and can only encrypt small amounts of data (a 2048-bit key with OAEP-SHA256 can encrypt at most 190 bytes). Real systems use <strong>hybrid encryption</strong>: RSA (or Diffie-Hellman) exchanges a random AES key, then AES encrypts the actual data. This is exactly what HTTPS does.
+    </div>
+</div>
+
+<h2>10. Part G - Encrypting Your Lab 06 Socket Traffic</h2>
+
+<div class="task">
+    <div class="task-title"><span class="step-num">12</span>Encrypted TCP Client/Server (links to Lab 06)</div>
+    <p>In Lab 06 Task 8 you saw your message in plaintext in Wireshark. Now you will encrypt it with Fernet using a pre-shared key.</p>
+    <p><strong>Step 1</strong> - create a shared key file with <code>make_key.py</code>:</p>
+    <pre>from cryptography.fernet import Fernet
+
+key = Fernet.generate_key()
+with open("secret.key", "wb") as f:
+    f.write(key)
+print("[*] Key saved to secret.key - copy this file to the client side")</pre>
+    <p><strong>Step 2</strong> - <code>secure_server.py</code>:</p>
+    <pre>import socket
+from cryptography.fernet import Fernet
+
+HOST = "127.0.0.1"
+PORT = 5001
+
+with open("secret.key", "rb") as f:
+    cipher = Fernet(f.read())
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind((HOST, PORT))
+server.listen(1)
+print(f"[*] Secure server listening on {HOST}:{PORT}")
+
+conn, addr = server.accept()
+print(f"[+] Connection from {addr}")
+
+while True:
+    data = conn.recv(4096)
+    if not data:
+        break
+    print("[&lt;] Raw bytes on the wire:", data[:40], "...")
+    message = cipher.decrypt(data).decode()
+    print("[&lt;] Decrypted message   :", message)
+    reply = cipher.encrypt(f"Server got: {message}".encode())
+    conn.sendall(reply)
+
+conn.close()
+server.close()</pre>
+    <p><strong>Step 3</strong> - <code>secure_client.py</code>:</p>
+    <pre>import socket
+from cryptography.fernet import Fernet
+
+HOST = "127.0.0.1"
+PORT = 5001
+
+with open("secret.key", "rb") as f:
+    cipher = Fernet(f.read())
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect((HOST, PORT))
+print(f"[*] Connected to {HOST}:{PORT} (type 'quit' to exit)")
+
+while True:
+    message = input("You: ")
+    if message.lower() == "quit":
+        break
+    client.sendall(cipher.encrypt(message.encode()))
+    reply = client.recv(4096)
+    print(cipher.decrypt(reply).decode())
+
+client.close()</pre>
+    <p><strong>Run and capture:</strong></p>
+    <ol>
+        <li>Run <code>python3 make_key.py</code> once.</li>
+        <li>Start a Wireshark capture on the <strong>loopback</strong> interface (<code>lo</code>) with display filter <code>tcp.port == 5001</code>.</li>
+        <li>Terminal 1: <code>python3 secure_server.py</code> &nbsp;&nbsp; Terminal 2: <code>python3 secure_client.py</code></li>
+        <li>Send the message <code>my password is hunter2</code>, then look at the packet bytes pane in Wireshark.</li>
+    </ol>
+    <div class="box">
+        Could you find <code>hunter2</code> in the Wireshark capture this time? <span class="fill-box">&nbsp;</span><br>
+        What did the payload look like instead? <span class="fill-box">&nbsp;</span><br>
+        Delete <code>secret.key</code>, generate a new one, and copy it <em>only</em> to the server. What error does the server raise when the old-key client connects? <span class="fill-box">&nbsp;</span><br>
+        What is the main weakness of a <em>pre-shared</em> key, and how does TLS solve it?
+        <div class="answer-area">Write your answer here...</div>
+    </div>
+    <div class="warning">
+        <strong>Note:</strong> This is a teaching example. It assumes each <code>recv()</code> returns one complete encrypted message, which is fine on localhost but not guaranteed in general. For real applications use TLS - Python's <code>ssl</code> module can wrap a socket with <code>ssl.SSLContext.wrap_socket()</code>.
+    </div>
+</div>
+
+<h2>11. Quick Reference: Python Crypto Essentials</h2>
+<div class="box">
+    <table class="filter-table">
+        <tr><th>Goal</th><th>Code</th></tr>
+        <tr><td>Base64 encode / decode</td><td><code>base64.b64encode(b)</code> / <code>base64.b64decode(s)</code></td></tr>
+        <tr><td>SHA-256 hash (hex)</td><td><code>hashlib.sha256(b"data").hexdigest()</code></td></tr>
+        <tr><td>Any hash by name</td><td><code>hashlib.new("sha512", b"data")</code></td></tr>
+        <tr><td>Hash a big file</td><td><code>h = hashlib.sha256(); h.update(chunk)</code></td></tr>
+        <tr><td>Secure random bytes</td><td><code>secrets.token_bytes(16)</code></td></tr>
+        <tr><td>Password hash (PBKDF2)</td><td><code>hashlib.pbkdf2_hmac("sha256", pw, salt, 600_000)</code></td></tr>
+        <tr><td>HMAC tag</td><td><code>hmac.new(key, msg, hashlib.sha256).hexdigest()</code></td></tr>
+        <tr><td>Safe comparison</td><td><code>hmac.compare_digest(a, b)</code></td></tr>
+        <tr><td>Fernet key / encrypt / decrypt</td><td><code>Fernet.generate_key()</code> / <code>f.encrypt(b)</code> / <code>f.decrypt(token)</code></td></tr>
+        <tr><td>AES-GCM encrypt</td><td><code>AESGCM(key).encrypt(nonce, data, None)</code></td></tr>
+        <tr><td>RSA key pair</td><td><code>rsa.generate_private_key(public_exponent=65537, key_size=2048)</code></td></tr>
+        <tr><td>RSA sign / verify</td><td><code>priv.sign(msg, pss, hashes.SHA256())</code> / <code>pub.verify(sig, msg, pss, hashes.SHA256())</code></td></tr>
+        <tr><td>Terminal hash check</td><td><code>sha256sum file</code> &nbsp;|&nbsp; <code>echo -n text | sha256sum</code></td></tr>
+    </table>
+</div>
+
+<h2>12. Post-Lab Questions</h2>
+<div class="box">
+    <ol>
+        <li>Explain the difference between encoding, hashing and encryption, giving one Python example of each from this lab.</li>
+        <li>Why is the Caesar cipher insecure, and what property of AES makes brute force impractical?</li>
+        <li>Why are MD5 and SHA-1 no longer recommended? What would you use instead?</li>
+        <li>Explain what a salt is and how it defeats rainbow-table and duplicate-password attacks. Is the salt secret?</li>
+        <li>Why should password hashing be <em>slow</em>? Name two algorithms designed for password storage.</li>
+        <li>What is the difference between a plain SHA-256 hash and an HMAC? Which one stops an attacker from modifying a message and its checksum together?</li>
+        <li>Compare symmetric and asymmetric encryption: one advantage and one disadvantage of each. Why does HTTPS use both (hybrid encryption)?</li>
+        <li>In a digital signature, which key signs and which key verifies? What three security goals does a signature provide?</li>
+        <li>Compare your Wireshark captures from Lab 06 Task 8 and Lab 07 Task 12. What changed, and what can an attacker still see (hint: IPs, ports, packet sizes, timing)?</li>
+    </ol>
+    <div class="answer-area" style="min-height:150px;">Write your answers here...</div>
+</div>
+
+<h2>13. Submission Checklist</h2>
+<div class="box">
+    <ul class="checklist">
+        <li>☐ Your Python source files: <code>caesar.py</code>, <code>encoding.py</code>, <code>hashing.py</code>, <code>avalanche.py</code>, <code>file_hash.py</code>, <code>crack.py</code>, <code>password_hash.py</code>, <code>hmac_demo.py</code>, <code>fernet_demo.py</code>, <code>aes_gcm.py</code>, <code>rsa_demo.py</code>, <code>make_key.py</code>, <code>secure_server.py</code>, <code>secure_client.py</code>.</li>
+        <li>☐ <strong>Do not</strong> submit <code>secret.key</code> or any private key - keys are never shared in submissions.</li>
+        <li>☐ Screenshot of the Caesar brute-force output (Task 1).</li>
+        <li>☐ Screenshot of <code>file_hash.py</code> output next to <code>sha256sum</code>, before and after editing the file (Task 5).</li>
+        <li>☐ Screenshot of <code>password_hash.py</code> showing different hashes for the same password (Task 7).</li>
+        <li>☐ Screenshot of the RSA signature valid / invalid output (Task 11).</li>
+        <li>☐ Wireshark screenshot showing the <em>encrypted</em> payload on port 5001 (Task 12), ideally next to your Lab 06 plaintext screenshot.</li>
+        <li>☐ Completed table from Task 3 and answers to all Post-Lab Questions (Section 12).</li>
+        <li>☐ Submit as a single PDF plus your <code>.py</code> files, named: <code>StudentID_SE5101_Lab07.pdf</code></li>
+    </ul>
+</div>
+
+<footer>
+    SE5101 - Computer and Network Security &nbsp;|&nbsp; Lab Sheet 07 of the module series &nbsp;|&nbsp; For educational use within an isolated lab environment only.
+</footer>
+
+</body>
+</html>
